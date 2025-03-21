@@ -4,14 +4,14 @@ repos:
     rev: 'v0.11.2'
     hooks:
       - id: ruff
-        args: [--fix]  # проверяет код, и форматирует
+        args: [ --fix ]  # проверяет код, и форматирует
 
-  # Хук для проверки типов с MyPy
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.15.0'
+    rev: v1.15.0
     hooks:
       - id: mypy
-        args: [--strict, --ignore-missing-imports, --exclude, "^tests/"]  # Строгая проверка, игнорировать импорты без типов
+        args: [ --config-file=pyproject.toml ]
+        files: ^(?!tests/).*$  # Исключаем папку "tests"
 
   # Хук для запуска тестов с pytest
   - repo: local

@@ -29,6 +29,7 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.mypy]
-exclude = [".tests/"]  # Исключить папку tests
+exclude = "^(tests/|other_folder/).*"
 strict = true
 ignore_missing_imports = true
+disallow_untyped_defs = true
