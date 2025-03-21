@@ -1,0 +1,24 @@
+repos:
+  # Хук для форматирования с Ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 'v0.11.2'
+    hooks:
+      - id: ruff
+        args: []  # проверяет код, но не исправляет ошибки
+
+  # Хук для проверки типов с MyPy
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: 'v1.15.0'
+    hooks:
+      - id: mypy
+        args: [--strict, --ignore-missing-imports, --exclude, "^tests/"]  # Строгая проверка, игнорировать импорты без типов
+
+  # Хук для запуска тестов с pytest
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: pytest
+        language: system  # Использует локально установленный pytest
+        pass_filenames: false  # Не передавать имена файлов, запускать все тесты
+        always_run: true  # Запускать всегда, даже если нет изменений
