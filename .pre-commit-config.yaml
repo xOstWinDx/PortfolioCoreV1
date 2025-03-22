@@ -12,6 +12,9 @@ repos:
       - id: mypy
         args: [--config-file=mypy.ini]  # Указываем mypy.ini вместо pyproject.toml
         files: ^(?!tests/).*$  # Исключаем папку "tests"
+        additional_dependencies:
+          - "pydantic>=2.6.0"  # Указываем версию pydantic
+          - "pydantic[mypy]"   # Устанавливаем pydantic с поддержкой mypy плагина
 
   # Хук для запуска тестов с pytest
   - repo: local
