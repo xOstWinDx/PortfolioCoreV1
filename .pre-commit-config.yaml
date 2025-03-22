@@ -4,8 +4,7 @@ repos:
     hooks:
       - id: ruff
         name: ruff
-        entry: ruff
-        args: [check,--fix, --exit-zero ]
+        entry: ruff check --fix || true
         language: system
         types: [ python ]
 
