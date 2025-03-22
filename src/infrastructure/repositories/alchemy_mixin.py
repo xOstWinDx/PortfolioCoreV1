@@ -12,6 +12,7 @@ class SQLAlchemyMixin:
         self.session = session
 
     def _validate_update_data(self, updated_data: Mapping[str, object]) -> None:
+        """Валидирует входные апдейт данные, проверяя наличие недопустимых ключей."""
         valid_keys = set(self.model.__table__.columns.keys())  # {'id', 'name', 'tags'}
 
         # Проверяем, есть ли в updated_data недопустимые ключи
