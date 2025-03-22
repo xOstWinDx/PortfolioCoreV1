@@ -2,4 +2,4 @@ from src.domain.filters.base import BaseFilter
 
 
 class ProjectFilter(BaseFilter):
-    pass
+    stack: list[str] | None = None

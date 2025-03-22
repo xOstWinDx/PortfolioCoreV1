@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from typing import TypeVar
 
 from typing_extensions import Generic
@@ -6,8 +5,7 @@ from typing_extensions import Generic
 D = TypeVar("D")
 
 
-class InfraStructureEntity(ABC, Generic[D]):
-    @abstractmethod
+class InfraStructureEntity(Generic[D]):
     def to_domain(self) -> D:
         """Преобразует инфраструктурную сущность в доменную"""
-        raise NotImplementedError
+        raise NotImplementedError("to_domain not implemented")
