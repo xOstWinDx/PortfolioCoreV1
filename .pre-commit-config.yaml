@@ -1,11 +1,14 @@
 repos:
   # Хук для форматирования с Ruff
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 'v0.11.2'
+  - repo: local
     hooks:
       - id: ruff
-        args: [ --fix, --exit-zero]  # проверяет код, и форматирует
-
+        name: ruff
+        entry: ruff
+        args: [ --fix, --exit-zero-on-fix ]
+        language: system
+        types: [ python ]
+        
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.15.0  # Указываем конкретную версию mypy
     hooks:
