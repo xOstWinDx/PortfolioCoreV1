@@ -13,7 +13,7 @@ repos:
     rev: v1.15.0  # Указываем конкретную версию mypy
     hooks:
       - id: mypy
-        args: [--config-file=mypy.ini]  # Указываем mypy.ini вместо pyproject.toml
+        args: [--config-file=mypy.ini, --namespace-packages]  # Указываем mypy.ini вместо pyproject.toml
         files: ^(?!tests/).*$  # Исключаем папку "tests"
         additional_dependencies:
           - "pydantic>=2.6.0"  # Указываем версию pydantic
