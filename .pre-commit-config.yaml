@@ -7,10 +7,10 @@ repos:
         args: [ --fix ]  # проверяет код, и форматирует
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0
+    rev: v1.15.0  # Указываем конкретную версию mypy
     hooks:
       - id: mypy
-        args: [--config-file=pyproject.toml]
+        args: [--config-file=mypy.ini]  # Указываем mypy.ini вместо pyproject.toml
         files: ^(?!tests/).*$  # Исключаем папку "tests"
 
   # Хук для запуска тестов с pytest
