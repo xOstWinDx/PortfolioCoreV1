@@ -1,4 +1,3 @@
-import asyncio
 from datetime import datetime
 from typing import Sequence
 
@@ -34,49 +33,55 @@ class ProjectsRepository(AbstractProjectsRepository, SQLAlchemyMixin):
         seq: Sequence[ProjectModel] = res.scalars().all()
         return [item.to_domain() for item in seq]
 
-    async def _get_or_create_tags(self, tags: list[str]) -> list[TagModel]:
-        """Функция проверяет асинхронно все теги и создает их если не находит"""
-
-        async def inner(tag: str) -> TagModel:
-            res = await self.session.execute(
-                Select(TagModel).where(TagModel.name == tag)
-            )
-            item: TagModel = res.scalars().one_or_none()
-            if item is None:
-                item = TagModel(name=tag)
-                self.session.add(item)
-                await self.session.flush([item])
-            return item
-
-        return await asyncio.gather(*[inner(tag) for tag in tags])
-
     async def _get_or_create_technologies(
-        self, technologies: list[str]
+        self, technology_names: list[str]
     ) -> list[TechnologyModel]:
-        """Функция проверяет асинхронно все технологии и создает их если не находит"""
-
-        async def inner(tech: str) -> TechnologyModel:
-            res = await self.session.execute(
-                Select(TechnologyModel).where(TechnologyModel.name == tech)
+        technologies = []
+        for name in technology_names:
+            # Ищем технологию по имени (если name — это PK)
+            technology = await self.session.execute(
+                Select(TechnologyModel).where(TechnologyModel.name == name)
             )
-            item: TechnologyModel = res.scalars().one_or_none()
-            if item is None:
-                item = TechnologyModel(name=tech)
-                self.session.add(item)
-                await self.session.flush([item])
-            return item
+            technology = technology.scalar_one_or_none()
+            # Если технология не найдена, создаем новую
+            if not technology:
+                technology = TechnologyModel(name=name)
+                self.session.add(technology)
+            technologies.append(technology)
+        return technologies
 
-        return await asyncio.gather(*[inner(tech) for tech in technologies])
+    async def _get_or_create_tags(self, tag_names: list[str]) -> list[TagModel]:
+        tags = []
+        for name in tag_names:
+            # Ищем тег по имени (если name — это PK)
+            tag = await self.session.execute(
+                Select(TagModel).where(TagModel.name == name)
+            )
+            tag = tag.scalar_one_or_none()
+            # Если тег не найден, создаем новый
+            if not tag:
+                tag = TagModel(name=name)
+                self.session.add(tag)
+            tags.append(tag)
+        return tags
 
     async def create_project(self, project: Project) -> Project:
-        project = to_model(
-            project,
-            tags=await self._get_or_create_tags(project.tags),
-            stack=await self._get_or_create_technologies(project.stack),
-        )
-        self.session.add(project)
-        await self.session.flush([project])
-        return project.to_domain()
+        # Получаем или создаем технологии и теги
+        technologies = await self._get_or_create_technologies(project.stack)
+        tags = await self._get_or_create_tags(project.tags)
+
+        # Преобразуем Project в ProjectModel
+        project_model = to_model(project)
+
+        # Устанавливаем связи с технологиями и тегами
+        project_model.stack = technologies
+        project_model.tags = tags
+
+        # Объединяем проект и получаем обновленный объект
+        self.session.add(project_model)
+        await self.session.flush()
+
+        return project_model.to_domain()
 
     async def update_project(
         self,

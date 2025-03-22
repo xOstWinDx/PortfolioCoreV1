@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from src.domain.entities.project import Project
 from src.infrastructure.abstract import InfraStructureEntity
@@ -12,6 +12,7 @@ class ProjectSchema(BaseModel, InfraStructureEntity[Project]):
     tags: list[str]
     stack: list[str]
     created_at: datetime
+    model_config = ConfigDict()
 
     @field_validator("tags", mode="after")
     def validate_tags(cls, value: list[str]) -> list[str]:
@@ -20,7 +21,7 @@ class ProjectSchema(BaseModel, InfraStructureEntity[Project]):
             if len(tag) > 16:
                 raise ValueError(f"Tag name too long: {tag}, max length is 16")
             # Проверка длины и уникальности тегов
-            tag = tag.strip()  # Удаляем лишние пробелы
+            tag = tag.strip().lower()  # Удаляем лишние пробелы и стандартизируем
             if not tag:
                 raise ValueError("Tag cannot be empty")
             if len(tag) > 16:
@@ -39,7 +40,7 @@ class ProjectSchema(BaseModel, InfraStructureEntity[Project]):
             if len(tech) > 16:
                 raise ValueError(f"Tech name too long: {tech}, max length is 16")
             # Проверка длины и уникальности Технологий
-            tech = tech.strip()  # Удаляем лишние пробелы
+            tech = tech.strip().lower()  # Удаляем лишние пробелы и стандартизируем
             if not tech:
                 raise ValueError("Tech cannot be empty")
             if len(tech) > 16:
@@ -48,6 +49,10 @@ class ProjectSchema(BaseModel, InfraStructureEntity[Project]):
                 raise ValueError(f"Duplicate tech: {tech}")
             unique_techs.add(tech)
         return list(unique_techs)
+
+    @field_validator("title", mode="after")
+    def validate_title(cls, value: str) -> str:
+        return value.strip().capitalize()
 
     def to_domain(self) -> Project:
         return Project(

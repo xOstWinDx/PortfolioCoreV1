@@ -23,7 +23,7 @@ class ProjectsUnitOfWork(AbstractProjectsUnitOfWork):
         await self.session.rollback()
 
     async def __aexit__(self, exc_type, exc_value, traceback) -> None:  # type: ignore
-        await self.session.close()
+        await self.session.__aexit__(exc_type, exc_value, traceback)
         if exc_value is not None:
             await self.rollback()
         self.session = None

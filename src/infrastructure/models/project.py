@@ -22,10 +22,10 @@ class TechnologyModel(Base):
 class ProjectModel(Base, InfraStructureEntity[Project]):
     __tablename__ = "projects"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    title: Mapped[Str128]
+    title: Mapped[Str128] = mapped_column(unique=True)
     description: Mapped[str]
-    tags: Mapped[list] = relationship(TagModel, secondary="projects_tags")
-    stack: Mapped[list] = relationship(
+    tags: Mapped[list[TagModel]] = relationship(TagModel, secondary="projects_tags")
+    stack: Mapped[list[TechnologyModel]] = relationship(
         TechnologyModel, secondary="projects_technologies"
     )
 
@@ -35,8 +35,8 @@ class ProjectModel(Base, InfraStructureEntity[Project]):
             created_at=self.created_at,
             title=self.title,
             description=self.description,
-            tags=self.tags,
-            stack=self.stack,
+            tags=[tag.name for tag in self.tags],
+            stack=[tech.name for tech in self.stack],
         )
 
 
