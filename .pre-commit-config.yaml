@@ -4,13 +4,13 @@ repos:
     rev: 'v0.11.2'
     hooks:
       - id: ruff
-        args: [ --fix ]  # проверяет код, и форматирует
+        args: [ --fix, --exit-zero-on-fix ]  # проверяет код, и форматирует
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.15.0  # Указываем конкретную версию mypy
     hooks:
       - id: mypy
-        args: [--config-file=mypy.ini]  # Указываем mypy.ini вместо pyproject.toml
+        args: [ --config-file=mypy.ini ]  # Указываем mypy.ini вместо pyproject.toml
         files: ^(?!tests/).*$  # Исключаем папку "tests"
         additional_dependencies:
           - "pydantic>=2.6.0"  # Указываем версию pydantic
