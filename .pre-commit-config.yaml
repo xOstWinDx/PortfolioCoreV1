@@ -4,7 +4,7 @@ repos:
     hooks:
       - id: ruff
         name: ruff
-        entry: cmd /c "ruff check --fix & exit 0"
+        entry: ruff check --fix --exit-zero
         language: system
         types: [ python ]
 
