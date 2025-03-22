@@ -4,9 +4,9 @@ repos:
     hooks:
       - id: ruff
         name: ruff
-        entry: cmd /c "ruff check --fix || exit 0"
+        entry: cmd /c "ruff check --fix & exit 0"
         language: system
-        types: [python]
+        types: [ python ]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.15.0  # Указываем конкретную версию mypy
