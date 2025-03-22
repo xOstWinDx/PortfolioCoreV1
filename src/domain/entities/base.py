@@ -4,5 +4,5 @@ from datetime import datetime
 
 @dataclass
 class BaseEntity:
-    id: int
+    id: int | None
     created_at: datetime

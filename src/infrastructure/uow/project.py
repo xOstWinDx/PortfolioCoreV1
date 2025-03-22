@@ -3,14 +3,11 @@ from typing import Callable
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.interfaces.uow.project_uow import AbstractProjectsUnitOfWork
-from src.infrastructure.database import DEFAULT_SESSION_FACTORY
 from src.infrastructure.repositories.projects import ProjectsRepository
 
 
 class ProjectsUnitOfWork(AbstractProjectsUnitOfWork):
-    def __init__(
-        self, session_factory: Callable[[], AsyncSession] = DEFAULT_SESSION_FACTORY
-    ) -> None:
+    def __init__(self, session_factory: Callable[[], AsyncSession]) -> None:
         self.session_factory = session_factory
 
     async def __aenter__(self) -> "ProjectsUnitOfWork":
