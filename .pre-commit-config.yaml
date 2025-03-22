@@ -1,28 +1,30 @@
 repos:
-  - repo: local
+  # Хук для форматирования с Ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.11.2
     hooks:
+      # Run the linter.
       - id: ruff
-        name: ruff
-        entry: ruff check --fix --exit-zero
-        language: system
-        types: [ python ]
-        pass_filenames: false  # Отключаем передачу имен файлов
+      # Run the formatter.
+      - id: ruff-format
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0
+    rev: v1.15.0  # Указываем конкретную версию mypy
     hooks:
       - id: mypy
-        args: [ --config-file=mypy.ini ]
-        files: ^(?!tests/).*$
+        args: [--config-file=mypy.ini]  # Указываем mypy.ini вместо pyproject.toml
+        files: ^(?!tests/).*$  # Исключаем папку "tests"
         additional_dependencies:
-          - "pydantic>=2.6.0"
-          - "pydantic[mypy]"
+          - "pydantic>=2.6.0"  # Указываем версию pydantic
+          - "pydantic[mypy]"   # Устанавливаем pydantic с поддержкой mypy плагина
 
+  # Хук для запуска тестов с pytest
   - repo: local
     hooks:
       - id: pytest
         name: pytest
         entry: pytest
-        language: system
-        pass_filenames: false
-        always_run: true
+        language: system  # Использует локально установленный pytest
+        pass_filenames: false  # Не передавать имена файлов, запускать все тесты
+        always_run: true  # Запускать всегда, даже если нет изменений
