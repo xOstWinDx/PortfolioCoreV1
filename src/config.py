@@ -7,4 +7,4 @@ class Config(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
 
 
-config = Config()
+CONFIG = Config()
