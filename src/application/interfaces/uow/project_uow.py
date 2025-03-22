@@ -1,18 +1,15 @@
 from abc import ABC, abstractmethod
-from typing import TypeVar, Generic
 
 from src.application.interfaces.repositories.project_repo import (
     AbstractProjectsRepository,
 )
 
-U = TypeVar("U")
 
-
-class AbstractProjectsUnitOfWork(ABC, Generic[U]):
+class AbstractProjectsUnitOfWork(ABC):
     projects: AbstractProjectsRepository
 
     @abstractmethod
-    async def __aenter__(self) -> U:
+    async def __aenter__(self) -> "AbstractProjectsUnitOfWork":
         raise NotImplementedError
 
     @abstractmethod
