@@ -10,7 +10,7 @@ repos:
     rev: v1.15.0
     hooks:
       - id: mypy
-        args: [ --config-file=pyproject.toml ]
+        args: [--config-file=pyproject.toml]
         files: ^(?!tests/).*$  # Исключаем папку "tests"
 
   # Хук для запуска тестов с pytest
