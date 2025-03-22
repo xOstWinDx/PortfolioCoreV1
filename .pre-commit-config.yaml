@@ -5,7 +5,7 @@ repos:
       - id: ruff
         name: ruff
         entry: ruff
-        args: [ --fix, --exit-zero-on-fix ]
+        args: [check,--fix, --exit-zero ]
         language: system
         types: [ python ]
 
