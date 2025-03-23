@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class AbstractAuthService(ABC):
@@ -19,5 +20,5 @@ class AbstractAuthService(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def validate_token(self, token: str) -> bool:
+    def decode_token(self, token: str) -> bool | dict[str, Any]:
         raise NotImplementedError
