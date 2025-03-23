@@ -3,9 +3,7 @@ from typing import Sequence
 
 from sqlalchemy import Select, Update, Delete
 
-from src.application.interfaces.repositories.project_repo import (
-    AbstractProjectsRepository,
-)
+from src.application.interfaces.repositories.project import AbstractProjectsRepository
 from src.domain.entities.project import Project
 from src.domain.filters.project import ProjectFilter
 from src.infrastructure.models.mapping import to_model
@@ -13,7 +11,7 @@ from src.infrastructure.models.project import ProjectModel, TagModel, Technology
 from src.infrastructure.repositories.alchemy_mixin import SQLAlchemyMixin
 
 
-class ProjectsRepository(AbstractProjectsRepository, SQLAlchemyMixin):
+class SQLProjectsRepository(AbstractProjectsRepository, SQLAlchemyMixin):
     model = ProjectModel
 
     async def get_project(

@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 
-from src.application.interfaces.repositories.project_repo import (
-    AbstractProjectsRepository,
-)
+from src.application.interfaces.repositories.project import AbstractProjectsRepository
 
 
 class AbstractProjectsUnitOfWork(ABC):

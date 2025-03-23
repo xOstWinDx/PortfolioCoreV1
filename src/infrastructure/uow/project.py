@@ -3,7 +3,7 @@ from typing import Callable
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.interfaces.uow.project_uow import AbstractProjectsUnitOfWork
-from src.infrastructure.repositories.projects import ProjectsRepository
+from src.infrastructure.repositories.projects import SQLProjectsRepository
 
 
 class ProjectsUnitOfWork(AbstractProjectsUnitOfWork):
@@ -13,7 +13,7 @@ class ProjectsUnitOfWork(AbstractProjectsUnitOfWork):
     async def __aenter__(self) -> "ProjectsUnitOfWork":
         self.session = self.session_factory()
         await self.session.__aenter__()
-        self.projects = ProjectsRepository(self.session)
+        self.projects = SQLProjectsRepository(self.session)
         return self
 
     async def commit(self) -> None:
