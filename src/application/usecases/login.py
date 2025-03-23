@@ -22,22 +22,27 @@ class LoginUseCase:
         :return: Кортеж из access и refresh токенов или None если не удалось аутентифицироваться
         """
         if self.auth.check_password(username, password):
-            refresh = await self._check_exists_tokens(username, ip, platform, browser)
-            access = self.auth.create_access_token(username)
-            if refresh is not None:
-                return access, refresh
-            else:
-                refresh = self.auth.create_refresh_token(username)
-                exp = datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=180)
-                await self.cache.set(
-                    key=f"white:{username}:{refresh}",
-                    expiration=int(exp.timestamp()),
-                    ip=ip,
-                    platform=platform,
-                    browser=browser,
-                    created_at=int(datetime.datetime.now(datetime.UTC).timestamp()),
+            async with self.cache:
+                refresh = await self._check_exists_tokens(
+                    username, ip, platform, browser
                 )
-                return access, refresh
+                access = self.auth.create_access_token(username)
+                if refresh is not None:
+                    return access, refresh
+                else:
+                    refresh = self.auth.create_refresh_token(username)
+                    exp = datetime.datetime.now(datetime.UTC) + datetime.timedelta(
+                        days=180
+                    )
+                    await self.cache.set(
+                        key=f"white:{username}:{refresh}",
+                        expiration=int(exp.timestamp()),
+                        ip=ip,
+                        platform=platform,
+                        browser=browser,
+                        created_at=int(datetime.datetime.now(datetime.UTC).timestamp()),
+                    )
+                    return access, refresh
         return None
 
     async def _check_exists_tokens(

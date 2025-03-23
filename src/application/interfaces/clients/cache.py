@@ -4,6 +4,14 @@ from typing import Any
 
 class AbstractCacheClient(ABC):
     @abstractmethod
+    async def __aenter__(self) -> "AbstractCacheClient":
+        raise NotImplementedError
+
+    @abstractmethod
+    async def __aexit__(self, exc_type, exc_value, traceback) -> None:  # type: ignore
+        raise NotImplementedError
+
+    @abstractmethod
     async def set(  # type: ignore
         self,
         /,

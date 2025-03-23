@@ -1,9 +1,12 @@
 from dependency_injector import containers, providers
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from src.application.usecases.add_project import AddNewProjectUseCase
 from src.application.usecases.login import LoginUseCase
 from src.config import CONFIG
+from src.infrastructure.clients.redis import RedisClient
+from src.infrastructure.repositories.user import AuthService
 from src.infrastructure.uow.project import ProjectsUnitOfWork
 
 
@@ -22,8 +25,14 @@ class Container(containers.DeclarativeContainer):
         AddNewProjectUseCase, project_uow=projects_uow
     )
 
+    auth_service = providers.Factory(AuthService)
+
+    redis = providers.Factory(
+        Redis.from_url, url=CONFIG.DEV_REDIS_URL, decode_responses=True
+    )
+
+    cache_client = providers.Factory(RedisClient, redis=redis)
+
     login_use_case = providers.Factory(
-        LoginUseCase,
-        auth=...,
-        cache=...,  # TODO: Сделать фабрики для параметров. Реализовать кэш
+        LoginUseCase, auth=auth_service, cache=cache_client
     )

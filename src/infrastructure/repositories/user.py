@@ -1,7 +1,6 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Any
-from zoneinfo import ZoneInfo
 
 import bcrypt
 import jwt
@@ -19,7 +18,7 @@ class AuthService(AbstractAuthService):
             "iss": "portfolio_backend",
             "sub": username,
             "scope": "all",
-            "exp": datetime.now(ZoneInfo("UTC")) + timedelta(minutes=30),
+            "exp": datetime.now(UTC) + timedelta(minutes=30),
         }
         return self._create_token(payload)
 
@@ -27,8 +26,8 @@ class AuthService(AbstractAuthService):
         payload = {
             "iss": "portfolio_backend",
             "sub": username,
-            "exp": datetime.now(ZoneInfo("UTC")) + timedelta(days=180),
-            "iat": datetime.now(ZoneInfo("UTC")),
+            "exp": datetime.now(UTC) + timedelta(days=180),
+            "iat": datetime.now(UTC),
             "jti": uuid.uuid4().hex,
         }
         return self._create_token(payload)

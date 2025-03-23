@@ -7,6 +7,7 @@ from starlette.responses import JSONResponse
 from user_agents import parse
 
 from src.application.usecases.login import LoginUseCase
+from src.presentation.http.auth.dependencies import get_login_use_case
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -15,7 +16,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 async def get_token(  # type: ignore
     request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    use_case: Annotated[LoginUseCase, Depends()],
+    use_case: Annotated[LoginUseCase, Depends(get_login_use_case)],
 ):
     # Извлекаем User-Agent из заголовков
     user_agent_string = request.headers.get("User-Agent", "")
