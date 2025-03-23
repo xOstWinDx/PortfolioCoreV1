@@ -20,5 +20,5 @@ class AbstractAuthService(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def decode_token(self, token: str) -> bool | dict[str, Any]:
+    def decode_token(self, token: str) -> dict[str, Any]:
         raise NotImplementedError

@@ -23,6 +23,7 @@ class AuthService(AbstractAuthService):
         return self._create_token(payload)
 
     def create_refresh_token(self, username: str) -> str:
+        # TODO: Доделать jti должен возвращаться для кеша
         payload = {
             "iss": "portfolio_backend",
             "sub": username,
@@ -45,7 +46,7 @@ class AuthService(AbstractAuthService):
         )
         return token
 
-    def decode_token(self, token: str) -> bool | dict[str, Any]:
+    def decode_token(self, token: str) -> dict[str, Any]:
         try:
             payload: dict[str, Any] = jwt.decode(
                 token,
@@ -54,4 +55,4 @@ class AuthService(AbstractAuthService):
             )
             return payload
         except jwt.PyJWTError:
-            return False
+            return {}
