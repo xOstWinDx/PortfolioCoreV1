@@ -2,6 +2,7 @@ from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from src.application.usecases.add_project import AddNewProjectUseCase
+from src.application.usecases.login import LoginUseCase
 from src.config import CONFIG
 from src.infrastructure.uow.project import ProjectsUnitOfWork
 
@@ -19,4 +20,10 @@ class Container(containers.DeclarativeContainer):
 
     create_project_use_case = providers.Factory(
         AddNewProjectUseCase, project_uow=projects_uow
+    )
+
+    login_use_case = providers.Factory(
+        LoginUseCase,
+        auth=...,
+        cache=...,  # TODO: Сделать фабрики для параметров. Реализовать кэш
     )
