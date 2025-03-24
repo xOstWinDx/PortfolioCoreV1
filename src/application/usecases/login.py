@@ -23,26 +23,24 @@ class LoginUseCase:
         """
         if self.auth.check_password(username, password):
             async with self.cache:
-                refresh = await self._check_exists_tokens(
+                exist_refresh = await self._check_exists_tokens(
                     username, ip, platform, browser
                 )
                 access = self.auth.create_access_token(username)
-                if refresh is not None:
-                    return access, refresh
+                if exist_refresh is not None:
+                    return access.token, exist_refresh
                 else:
-                    refresh = self.auth.create_refresh_token(username)
-                    exp = datetime.datetime.now(datetime.UTC) + datetime.timedelta(
-                        days=180
-                    )
+                    new_refresh = self.auth.create_refresh_token(username)
                     await self.cache.set(
-                        key=f"white:{username}:{refresh}",
-                        expiration=int(exp.timestamp()),
+                        key=f"white:{username}:{new_refresh.payload.jti}",
+                        expiration=new_refresh.payload.exp,
+                        token=new_refresh.token,
                         ip=ip,
                         platform=platform,
                         browser=browser,
                         created_at=int(datetime.datetime.now(datetime.UTC).timestamp()),
                     )
-                    return access, refresh
+                    return access.token, new_refresh.token
         return None
 
     async def _check_exists_tokens(
@@ -69,8 +67,9 @@ class LoginUseCase:
                 token_meta["ip"] == ip
                 and token_meta["platform"] == platform
                 and token_meta["browser"] == browser
+                and token_meta.get("token")
             ):
-                return key.split(":")[2]  # Возвращаем refresh токен
+                return token_meta["token"]  # type: ignore
             key_token.append((key, token_meta))
 
         # Ограничиваем пользователя по количеству токенов удаляя самые старые

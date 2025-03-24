@@ -1,5 +1,6 @@
 from src.application.interfaces.clients.cache import AbstractCacheClient
 from src.application.interfaces.services.auth import AbstractAuthService
+from src.domain.entities.tokens import RefreshTokenPayload
 
 
 class UpdateTokenUseCase:
@@ -12,12 +13,16 @@ class UpdateTokenUseCase:
     async def __call__(
         self, ip: str, platform: str, browser: str, refresh_token: str
     ) -> str | None:
+        payload = self.auth.decode_token(refresh_token)
+        if not payload or not isinstance(payload, RefreshTokenPayload):
+            return None
+
         async with self.cache_client:
-            baned = await self.cache_client.keys(f"black:*:{refresh_token}")
+            baned = await self.cache_client.keys(f"black:*:{payload.jti}")
             if baned:
                 # Можно добавить уведомления, о том что токен взломан
                 return None
-            keys = await self.cache_client.keys(f"white:*:{refresh_token}")
+            keys = await self.cache_client.keys(f"white:*:{payload.jti}")
 
             if not keys:
                 return None
@@ -25,21 +30,20 @@ class UpdateTokenUseCase:
 
             if meta is None:
                 return None
-            payload = self.auth.decode_token(refresh_token)
+
             if not payload:
                 return None
-            username = payload["sub"]
+            username = payload.sub
             if (
-                username == meta["username"]
-                and meta["ip"] == ip
+                meta["ip"] == ip
                 and meta["platform"] == platform
                 and meta["browser"] == browser
             ):
-                return self.auth.create_access_token(username)
+                return self.auth.create_access_token(username).token
             else:
                 await self.cache_client.delete(keys[0])
                 await self.cache_client.set(
-                    key=f"black:{username}:{refresh_token}",
+                    key=f"black:{username}:{payload.jti}",
                     banned_by="incorrect ip or platform or browser",
                 )
                 return None

@@ -9,9 +9,11 @@ from user_agents import parse
 
 from src.application.usecases.login import LoginUseCase
 from src.application.usecases.update_token import UpdateTokenUseCase
+from src.domain.entities.tokens import RefreshToken
 from src.presentation.http.auth.dependencies import (
     get_login_use_case,
     get_update_token_use_case,
+    validate_refresh_token,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -54,10 +56,11 @@ async def login(  # type: ignore
     return response
 
 
+@router.post("/update_token")
 async def update_token(  # type: ignore
     request: Request,
     use_case: Annotated[UpdateTokenUseCase, Depends(get_update_token_use_case)],
-    refresh_token: Annotated[str | None, Depends()],
+    refresh_token: Annotated[RefreshToken, Depends(validate_refresh_token)],
 ):
     if refresh_token is None:
         raise HTTPException(status_code=401, detail="Refresh token not found")
@@ -73,7 +76,7 @@ async def update_token(  # type: ignore
         ip=request.client.host,
         platform=platform,
         browser=browser,
-        refresh_token=refresh_token,
+        refresh_token=refresh_token.token,
     )
     if token is None:
         # Удаляем куку "token"
@@ -83,7 +86,7 @@ async def update_token(  # type: ignore
             detail="Incorrect refresh token",
             headers=headers,
         )
-    response = JSONResponse(content={"access_token": token[0]})
+    response = JSONResponse(content={"access_token": token})
     response.set_cookie(
         key="access_token",
         value=token,

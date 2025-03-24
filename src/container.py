@@ -7,7 +7,7 @@ from src.application.usecases.login import LoginUseCase
 from src.application.usecases.update_token import UpdateTokenUseCase
 from src.config import CONFIG
 from src.infrastructure.clients.redis import RedisClient
-from src.infrastructure.repositories.user import AuthService
+from src.infrastructure.services.auth import AuthService
 from src.infrastructure.uow.project import ProjectsUnitOfWork
 
 

@@ -1,5 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Any
+
+from src.domain.entities.tokens import (
+    RefreshTokenPayload,
+    AccessTokenPayload,
+    AccessToken,
+    RefreshToken,
+)
 
 
 class AbstractAuthService(ABC):
@@ -8,11 +14,16 @@ class AbstractAuthService(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def create_access_token(self, username: str) -> str:
+    def create_access_token(self, username: str) -> AccessToken:
         raise NotImplementedError
 
     @abstractmethod
-    def create_refresh_token(self, username: str) -> str:
+    def create_refresh_token(self, username: str) -> RefreshToken:
+        """
+        Генерирует рефреш токен и возвращает сам токен + его айди
+        :param username:
+        :return: Кортеж токен + айди токена
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -20,5 +31,7 @@ class AbstractAuthService(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def decode_token(self, token: str) -> dict[str, Any]:
+    def decode_token(
+        self, token: str
+    ) -> RefreshTokenPayload | AccessTokenPayload | None:
         raise NotImplementedError
