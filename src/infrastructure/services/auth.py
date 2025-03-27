@@ -16,34 +16,35 @@ from src.domain.entities.tokens import (
     AccessToken,
     RefreshToken,
 )
+from src.domain.entities.user import User
 
 logger = logging.getLogger("auth_service")
 
 
 class AuthService(AbstractAuthService):
-    def check_password(self, username: str, password: str) -> bool:
-        return username == CONFIG.ADMIN_USERNAME and password == CONFIG.ADMIN_PASSWORD
+    def check_password(self, user_password: bytes, plain_password: str) -> bool:
+        return bcrypt.checkpw(plain_password.encode(), user_password)  # type: ignore
 
-    def create_access_token(self, username: str) -> AccessToken:
+    def create_access_token(self, user: User) -> AccessToken:
         payload = AccessTokenPayload(
             iss="portfolio_backend",
-            sub=username,
+            sub=user.id,
             scope="all",
             exp=int((datetime.now(UTC) + timedelta(minutes=30)).timestamp()),
             type=TokenType.ACCESS,
         )
         return AccessToken(token=self._create_token(payload), payload=payload)
 
-    def create_refresh_token(self, username: str) -> RefreshToken:
+    def create_refresh_token(self, user: User) -> RefreshToken:
         """
         Генерирует рефреш токен и возвращает сам токен + его айди
-        :param username:
+        :param user:
         :return: Кортеж токен + айди токена
         """
         jti = uuid.uuid4().hex
         payload = RefreshTokenPayload(
             iss="portfolio_backend",
-            sub=username,
+            sub=user.id,
             exp=int((datetime.now(UTC) + timedelta(days=180)).timestamp()),
             iat=int(datetime.now(UTC).timestamp()),
             jti=jti,
@@ -52,8 +53,8 @@ class AuthService(AbstractAuthService):
         return RefreshToken(token=self._create_token(payload), payload=payload)
 
     def hash_password(self, password: str) -> bytes:
-        hash: bytes = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
-        return hash
+        hash_pass: bytes = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+        return hash_pass
 
     @staticmethod
     def _create_token(payload: RefreshTokenPayload | AccessTokenPayload) -> str:
@@ -83,5 +84,5 @@ class AuthService(AbstractAuthService):
         except jwt.PyJWTError:
             return None
         except TypeError:
-            logger.warning(f"Wrong payload: {payload}")
+            logger.warning(f"Wrong payload: {payload}")  # noqa
         return None

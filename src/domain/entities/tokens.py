@@ -18,7 +18,7 @@ class TokenType(StrEnum):
 @dataclass
 class AccessTokenPayload:
     iss: str
-    sub: str
+    sub: int | None
     scope: str
     exp: int
     type: TokenType
@@ -27,7 +27,7 @@ class AccessTokenPayload:
 @dataclass
 class RefreshTokenPayload:
     iss: str
-    sub: str
+    sub: int | None
     exp: int
     iat: int
     jti: str

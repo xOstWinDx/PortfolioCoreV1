@@ -6,28 +6,29 @@ from src.domain.entities.tokens import (
     AccessToken,
     RefreshToken,
 )
+from src.domain.entities.user import User
 
 
 class AbstractAuthService(ABC):
     @abstractmethod
-    def check_password(self, username: str, password: str) -> bool:
+    def check_password(self, user_password: bytes, plain_password: str) -> bool:
         raise NotImplementedError
 
     @abstractmethod
-    def create_access_token(self, username: str) -> AccessToken:
+    def create_access_token(self, user: User) -> AccessToken:
         raise NotImplementedError
 
     @abstractmethod
-    def create_refresh_token(self, username: str) -> RefreshToken:
+    def create_refresh_token(self, user: User) -> RefreshToken:
         """
         Генерирует рефреш токен и возвращает сам токен + его айди
-        :param username:
+        :param user:
         :return: Кортеж токен + айди токена
         """
         raise NotImplementedError
 
     @abstractmethod
-    def hash_password(self, password: str) -> str | bytes:
+    def hash_password(self, password: str) -> bytes:
         raise NotImplementedError
 
     @abstractmethod
