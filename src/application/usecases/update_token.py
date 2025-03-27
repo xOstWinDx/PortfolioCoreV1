@@ -1,10 +1,10 @@
-from src.application.interfaces.clients.cache import AbstractCacheClient
-from src.application.interfaces.repositories.users import AbstractUsersRepository
 from src.application.interfaces.services.auth import AbstractAuthService
+from src.application.interfaces.unit_of_work import AbstractUnitOfWork
 from src.domain.entities.tokens import RefreshTokenPayload
 from src.domain.filters.users import UserFilter
 
-# TODO: вынести создание key для хранение токенов в отдельный класс, возможно в AuthService
+
+# TODO: заменить ретёрны на райзы ошибки.
 
 
 class UpdateTokenUseCase:
@@ -13,12 +13,10 @@ class UpdateTokenUseCase:
     def __init__(
         self,
         auth_service: AbstractAuthService,
-        cache_client: AbstractCacheClient,
-        users_repo: AbstractUsersRepository,
+        uow: AbstractUnitOfWork,
     ) -> None:
         self.auth = auth_service
-        self.cache_client = cache_client
-        self.users_repo = users_repo
+        self.uow = uow
 
     async def __call__(
         self, ip: str, platform: str, browser: str, refresh_token: str
@@ -27,34 +25,29 @@ class UpdateTokenUseCase:
         if not payload or not isinstance(payload, RefreshTokenPayload):
             return None
         user_id = payload.sub
-
-        user = await self.users_repo.get_user(UserFilter(id=user_id))
-        if user is None:
-            return None
-
-        async with self.cache_client:
-            baned = await self.cache_client.keys(f"black:{payload.sub}:{payload.jti}")
-            if baned:
+        async with self.uow as uow:
+            user = await uow.users.get_user(UserFilter(id=user_id))
+            if user is None:
                 return None
-            keys = await self.cache_client.keys(f"white:{payload.sub}:{payload.jti}")
 
-            if not keys:
+            if await uow.tokens.is_banned(str(payload.sub), payload.jti):
                 return None
-            meta = await self.cache_client.get(keys[0])
 
+            key_meta = await uow.tokens.get_active_one(str(payload.sub), payload.jti)
+            if key_meta is None:
+                return None
+
+            key, meta = key_meta
             if meta is None:
                 return None
-            if (
-                meta["ip"] == ip
-                and meta["platform"] == platform
-                and meta["browser"] == browser
-            ):
+
+            if meta.check(ip, platform, browser):
                 return self.auth.create_access_token(user).token
             else:
                 # Можно добавить уведомления, о том что токен взломан
-                await self.cache_client.delete(keys[0])
-                await self.cache_client.set(
-                    key=f"black:{user.id}:{payload.jti}",
-                    banned_by="incorrect ip or platform or browser",
+                await uow.tokens.ban(
+                    subject=str(user.id),
+                    token_id=payload.jti,
+                    reason="incorrect ip or platform or browser",
                 )
                 return None

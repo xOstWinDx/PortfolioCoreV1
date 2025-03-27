@@ -15,7 +15,7 @@ class TokenType(StrEnum):
     REFRESH = "refresh"
 
 
-@dataclass
+@dataclass(frozen=True)
 class AccessTokenPayload:
     iss: str
     sub: int | None
@@ -24,7 +24,7 @@ class AccessTokenPayload:
     type: TokenType
 
 
-@dataclass
+@dataclass(frozen=True)
 class RefreshTokenPayload:
     iss: str
     sub: int | None
@@ -47,6 +47,17 @@ class AccessToken:
 
 
 @dataclass(frozen=True)
-class Token:
+class TokenMeta:
+    ip: str
+    platform: str
+    browser: str
     token: str
-    payload: RefreshTokenPayload | AccessTokenPayload
+    created_at: int  # timestamp
+
+    def check(self, ip: str, platform: str, browser: str) -> bool:
+        return (
+            self.ip == ip
+            and self.platform == platform
+            and self.browser == browser
+            and isinstance(self.token, str)
+        )
