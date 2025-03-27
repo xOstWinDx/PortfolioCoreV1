@@ -2,7 +2,7 @@ from typing import Callable
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.application.interfaces.uow.project_uow import AbstractProjectsUnitOfWork
+from src.application.interfaces.uow.projects import AbstractProjectsUnitOfWork
 from src.infrastructure.repositories.projects import SQLProjectsRepository
 
 
@@ -27,4 +27,4 @@ class ProjectsUnitOfWork(AbstractProjectsUnitOfWork):
         if exc_value is not None:
             await self.rollback()
         self.session = None
-        self.projects = None  # type: ignore
+        self.projects = None

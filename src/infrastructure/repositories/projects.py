@@ -1,11 +1,14 @@
 from datetime import datetime
+from sqlite3 import IntegrityError
 from typing import Sequence
 
-from sqlalchemy import Select, Update, Delete
+from sqlalchemy import Select, Update, Delete, Insert
 
-from src.application.interfaces.repositories.project import AbstractProjectsRepository
+from src.application.interfaces.repositories.projects import AbstractProjectsRepository
 from src.domain.entities.project import Project
-from src.domain.filters.project import ProjectFilter
+from src.domain.entities.tokens import safe_as_dict
+from src.domain.exceptions.base import ConflictException
+from src.domain.filters.projects import ProjectFilter
 from src.infrastructure.models.mapping import to_model
 from src.infrastructure.models.project import ProjectModel, TagModel, TechnologyModel
 from src.infrastructure.repositories.alchemy_mixin import SQLAlchemyMixin
@@ -75,7 +78,19 @@ class SQLProjectsRepository(AbstractProjectsRepository, SQLAlchemyMixin):
         project_model.stack = technologies
         project_model.tags = tags
 
-        # Объединяем проект и получаем обновленный объект
+        # тут может вылететь ошибка, если нарушается согласованность
+        try:
+            stmt = (
+                Insert(self.model)
+                .values(safe_as_dict(project_model))
+                .returning(self.model)
+            )
+            res = await self.session.execute(stmt)
+            project_model = res.scalars().one()
+        except IntegrityError:
+            raise ConflictException  # Выкидываем наше исключение из доменной области
+
+        # получаем обновленный объект
         self.session.add(project_model)
         await self.session.flush()
 

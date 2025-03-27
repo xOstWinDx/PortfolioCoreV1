@@ -1,5 +1,6 @@
-from src.application.interfaces.uow.project_uow import AbstractProjectsUnitOfWork
+from src.application.interfaces.uow.projects import AbstractProjectsUnitOfWork
 from src.domain.entities.project import Project
+from src.domain.exceptions.base import ConflictException
 
 
 class AddNewProjectUseCase:
@@ -8,6 +9,9 @@ class AddNewProjectUseCase:
 
     async def __call__(self, project: Project) -> Project:
         async with self.project_uow as uow:
-            p = await uow.projects.create_project(project)
+            try:
+                p = await uow.projects.create_project(project)
+            except ConflictException:
+                raise ConflictException(f"Project conflict: {project.title}")
             await uow.commit()
-        return p
+        return p  # type: ignore
