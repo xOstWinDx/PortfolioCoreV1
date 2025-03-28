@@ -5,10 +5,8 @@ from src.application.interfaces.services.auth import AbstractAuthService
 from src.application.interfaces.unit_of_work import AbstractUnitOfWork
 from src.domain.entities.tokens import TokenMeta
 from src.domain.entities.user import User
+from src.domain.exceptions.auth import AuthError
 from src.domain.filters.users import UserFilter
-
-
-# TODO: райзить ошибки, а не возвращать None
 
 
 class LoginUseCase:
@@ -36,9 +34,7 @@ class LoginUseCase:
             user = await uow.users.get_user(UserFilter(email=email))
 
             # Защищаемся от timing attack =)
-            user_password = (
-                user.password if user is not None else uuid.uuid4().hex.encode()
-            )
+            user_password = user.password if user is not None else uuid.uuid4().bytes
             if self.auth.check_password(user_password, password) and user is not None:
                 exist_refresh = await self._check_exists_tokens(
                     user, ip, platform, browser
@@ -63,7 +59,7 @@ class LoginUseCase:
                         ),
                     )
                     return access.token, new_refresh.token
-            return None
+            raise AuthError()
 
     async def _check_exists_tokens(
         self, user: User, ip: str, platform: str, browser: str

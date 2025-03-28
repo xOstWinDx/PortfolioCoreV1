@@ -6,7 +6,7 @@ from sqlalchemy import Select, Update, Delete, Insert
 
 from src.application.interfaces.repositories.projects import AbstractProjectsRepository
 from src.domain.entities.project import Project
-from src.domain.entities.tokens import safe_as_dict
+from src.domain.utils import safe_as_dict
 from src.domain.exceptions.base import ConflictException
 from src.domain.filters.projects import ProjectFilter
 from src.infrastructure.models.mapping import to_model
