@@ -10,74 +10,7 @@ from src.infrastructure.services.auth import AuthService
 from src.infrastructure.unit_of_work import UnitOfWork
 
 
-# class LoginUseCaseProvider(Provider):
-#     def __init__(
-#             self,
-#             use_case_cls: type[LoginUseCase],
-#             uow_factory: Factory[AbstractUnitOfWork],
-#             auth_service_factory: Factory[AbstractAuthService],
-#     ):
-#         self.use_case_cls = use_case_cls
-#         self.uow_factory = uow_factory
-#         self.auth_service_factory = auth_service_factory
-#         super().__init__()
-#
-#     @asynccontextmanager
-#     async def _provide(self):
-#         uow = self.uow_factory()
-#         async with uow:
-#             yield self.use_case_cls(
-#                 user_repo=uow.users,
-#                 token_repo=uow.tokens,
-#                 auth=self.auth_service_factory(),
-#             )
-#
-#     def __call__(self):
-#         return self._provide()
-#
-#
-# class UpdateTokenUseCaseProvider(Provider):
-#     def __init__(
-#             self,
-#             use_case_cls: type[UpdateTokenUseCase],
-#             auth_service_factory: Factory[AbstractAuthService],
-#             uow_factory: Factory[AbstractUnitOfWork],
-#     ):
-#         self.use_case_cls = use_case_cls
-#         self.auth_service_factory = auth_service_factory
-#         self.uow_factory = uow_factory
-#         super().__init__()
-#
-#     @asynccontextmanager
-#     async def _provide(self):
-#         async with self.uow_factory() as uow:
-#             yield self.use_case_cls(
-#                 auth_service=self.auth_service_factory(),
-#                 token_repo=uow.tokens,
-#                 users_repo=uow.users
-#             )
-#
-#     def __call__(self):
-#         return self._provide()
-#
-#
-# class AddProjectUseCaseProvider(Provider):
-#     def __init__(
-#             self,
-#             use_case_cls: type[AddNewProjectUseCase],
-#             uow_factory: Factory[AbstractUnitOfWork],
-#     ):
-#         self.use_case_cls = use_case_cls
-#         self.uow_factory = uow_factory
-#         super().__init__()
-#
-#     @asynccontextmanager
-#     async def _provide(self):
-#         async with self.uow_factory() as uow:
-#             yield self.use_case_cls(project_uow=uow.projects)
-#
-#     def __call__(self):
-#         return self._provide()
+# TODO: добавить конфиг как синглтон сюда, а так-же уточнить роль ЮОВ
 
 
 class Container(containers.DeclarativeContainer):
@@ -108,3 +41,6 @@ class Container(containers.DeclarativeContainer):
     )
 
     create_project_use_case = providers.Factory(AddNewProjectUseCase, uow=uow)
+
+
+container = Container()
