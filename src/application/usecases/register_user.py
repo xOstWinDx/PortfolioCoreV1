@@ -7,9 +7,6 @@ from src.domain.exceptions.auth import UserAlreadyExistsError
 from src.domain.filters.users import UserFilter
 
 
-# TODO: рефакторинг uow - общий для всего SQL у которого все репозитории при входе в контекст!
-
-
 class RegisterUserUseCase:
     def __init__(self, uow: AbstractUnitOfWork, auth_service: AbstractAuthService):
         self.uow = uow
