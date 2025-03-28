@@ -1,7 +1,7 @@
 from sqlalchemy import Insert, Select, Delete, Update
 
 from src.application.interfaces.repositories.users import AbstractUsersRepository
-from src.domain.entities.tokens import safe_as_dict
+from src.domain.utils import safe_as_dict
 from src.domain.entities.user import User
 from src.domain.filters.users import UserFilter
 from src.infrastructure.models.user import UserModel
