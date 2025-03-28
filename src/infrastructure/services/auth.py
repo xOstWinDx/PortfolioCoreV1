@@ -11,11 +11,11 @@ from src.config import CONFIG
 from src.domain.entities.tokens import (
     AccessTokenPayload,
     RefreshTokenPayload,
-    safe_as_dict,
     TokenType,
     AccessToken,
     RefreshToken,
 )
+from src.domain.utils import safe_as_dict
 from src.domain.entities.user import User
 
 logger = logging.getLogger("auth_service")

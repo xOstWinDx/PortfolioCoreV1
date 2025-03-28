@@ -8,8 +8,9 @@ class UserAlreadyExistsError(Exception):
 
 
 class TokenError(Exception):
-    def __init__(self) -> None:
-        super().__init__("Invalid token")
+    def __init__(self, msg: str = "Invalid token") -> None:
+        self.msg = msg
+        super().__init__(msg)
 
     def __repr__(self) -> str:
         return "Invalid token"
