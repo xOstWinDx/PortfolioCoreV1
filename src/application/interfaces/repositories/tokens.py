@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from src.domain.entities.tokens import TokenMeta
 
@@ -34,7 +35,7 @@ class AbstractTokensRepository(ABC):
     @abstractmethod
     async def ban(
         self, subject: str = "*", token_id: str = "*", reason: str = ""
-    ) -> bool:
+    ) -> Any:
         """Перемещает токен из white листа в black лист"""
         raise NotImplementedError
 
@@ -43,11 +44,3 @@ class AbstractTokensRepository(ABC):
         self, subject: str, token_id: str, expiration: int, token_meta: TokenMeta
     ) -> bool:
         raise NotImplementedError
-
-    # TODO: в реализацию.
-    # Ограничиваем пользователя по количеству токенов удаляя самые старые
-    # if len(tokens_meta) >= max_tokens:
-    #     key_token.sort(key=lambda t: t[1]["created_at"])
-    #     to_delete = key_token[max_tokens - 1:]
-    #     for key, _ in to_delete:
-    #         await self.uow.tokens.delete(key)

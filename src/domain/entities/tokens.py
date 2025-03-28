@@ -1,13 +1,8 @@
-from dataclasses import dataclass, is_dataclass, asdict
+from dataclasses import dataclass
 from enum import StrEnum
-from typing import TypeVar, Any
+from typing import Any
 
-T = TypeVar("T")
-
-
-def safe_as_dict(obj: T) -> dict[str, Any]:
-    assert is_dataclass(obj), "Объект должен быть дата-классом"
-    return asdict(obj)  # type: ignore
+from src.domain.utils import safe_as_dict
 
 
 class TokenType(StrEnum):
@@ -61,3 +56,6 @@ class TokenMeta:
             and self.browser == browser
             and isinstance(self.token, str)
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        return safe_as_dict(self)
