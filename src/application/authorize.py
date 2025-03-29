@@ -10,6 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 class AuthDecorator:
+    """Декоратор для проверки прав доступа, требует 'credentials':keyword функции."""
+
     def __init__(self, required_role: RolesEnum):
         self.required_role = required_role
 
@@ -21,7 +23,11 @@ class AuthDecorator:
 
         @functools.wraps(func)
         async def wrapper(self: AbstractUseCase, *args, **kwargs):  # type: ignore
-            context = await self.auth.authorize(credentials=kwargs.get("credentials"))
+            from inspect import signature
+
+            if "credentials" not in signature(func).parameters:
+                raise ValueError("credentials keyword is required")
+            context = await self.auth.authorize(credentials=kwargs["credentials"])
             message = (
                 f"Access denied: required {req_role} or higher, got {context.role}"
             )
@@ -29,7 +35,6 @@ class AuthDecorator:
                 message += " (possibly due to an invalid or expired token)"
             if context.role < req_role:
                 raise PermissionError(message)
-            from inspect import signature
 
             if "context" in signature(func).parameters:
                 kwargs["context"] = context
