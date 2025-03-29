@@ -6,6 +6,7 @@ from typing import Any
 import bcrypt
 import jwt
 
+from src.application.interfaces.credentials import Credentials
 from src.application.interfaces.services.auth import AbstractAuthService
 from src.config import CONFIG
 from src.domain.entities.user import User, RolesEnum
@@ -25,7 +26,7 @@ logger = logging.getLogger("auth_service")
 class JwtAuthService(AbstractAuthService):
     async def authenticate(
         self, email: str, password: str, user: User | None
-    ) -> JwtCredentials:
+    ) -> Credentials:
         user_password = user.password if user is not None else uuid.uuid4().bytes
         if self.check_password(user_password, password) and user is not None:
             exist_refresh = await self._check_exists_tokens(user)
@@ -49,14 +50,16 @@ class JwtAuthService(AbstractAuthService):
                 )
         raise AuthError()
 
-    async def authorize(self, credentials: JwtCredentials) -> AuthorizationContext:  # type: ignore
-        payload = self.decode_token(credentials.access_token)
+    async def authorize(self, credentials: Credentials | None) -> AuthorizationContext:
+        if credentials is None:
+            return AuthorizationContext(user_id=None, role=RolesEnum.GUEST)
         try:
+            payload = self.decode_token(credentials.get_raw_data()["access_token"])
             if not payload or payload.type != TokenType.ACCESS:
                 raise TokenError()
             if not isinstance(payload, AccessTokenPayload):
                 raise TokenError("Invalid token type")
-        except TokenError as e:
+        except (TokenError, AttributeError, jwt.PyJWTError) as e:
             logger.warning(e)
             return AuthorizationContext(user_id=None, role=RolesEnum.GUEST)
         return AuthorizationContext(user_id=payload.sub, role=RolesEnum(payload.role))

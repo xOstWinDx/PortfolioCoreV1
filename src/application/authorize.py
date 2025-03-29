@@ -20,10 +20,8 @@ class AuthDecorator:
         req_role = self.required_role
 
         @functools.wraps(func)
-        async def wrapper(  # type: ignore
-            self: AbstractUseCase, credentials: Credentials, *args, **kwargs
-        ):
-            context = await self.auth.authorize(credentials=credentials)
+        async def wrapper(self: AbstractUseCase, *args, **kwargs):  # type: ignore
+            context = await self.auth.authorize(credentials=kwargs.get("credentials"))
             message = (
                 f"Access denied: required {req_role} or higher, got {context.role}"
             )

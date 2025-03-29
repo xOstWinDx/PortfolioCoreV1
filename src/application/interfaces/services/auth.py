@@ -18,7 +18,7 @@ class AbstractAuthService(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def authorize(self, credentials: Credentials) -> AuthorizationContext:
+    async def authorize(self, credentials: Credentials | None) -> AuthorizationContext:
         raise NotImplementedError
 
     @staticmethod

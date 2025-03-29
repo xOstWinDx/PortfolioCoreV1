@@ -5,7 +5,7 @@ from src.domain.filters.users import UserFilter
 
 
 class UpdateCredentialsUseCase(AbstractUseCase):
-    async def __call__(self, credentials: Credentials) -> Credentials:
+    async def __call__(self, *, credentials: Credentials) -> Credentials:
         flow = await self.auth.renew_credentials(credentials)
         subject_id: int = await flow.__anext__()  # type: ignore
         if isinstance(subject_id, int):
