@@ -5,7 +5,7 @@ from src.domain.filters.users import UserFilter
 
 class LoginUseCase(AbstractUseCase):
     async def __call__(
-        self, *, credentials: Credentials, email: str, password: str
+        self, email: str, password: str, *, credentials: Credentials | None = None
     ) -> Credentials:
         async with self.uow as uow:
             user = await uow.users.get_user(UserFilter(email=email))

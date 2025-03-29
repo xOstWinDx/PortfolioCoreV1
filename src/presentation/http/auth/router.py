@@ -2,102 +2,95 @@ from typing import Annotated
 
 from dependency_injector.wiring import inject, Provide
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi import Request
 from starlette import status
 from starlette.responses import JSONResponse
-from user_agents import parse
 
 from src.application.usecases.login import LoginUseCase
-from src.application.usecases.update_token import UpdateTokenUseCase
+from src.application.usecases.register_user import RegisterUserUseCase
+from src.application.usecases.update_token import UpdateCredentialsUseCase
 from src.container import container
-from src.domain.entities.tokens import RefreshToken
-from src.domain.exceptions.auth import TokenError
-from src.presentation.http.auth.dependencies import (
-    get_update_token_use_case,
-)
+from src.domain.exceptions.auth import TokenError, UserAlreadyExistsError, AuthError
+from src.infrastructure.schemas.user import LoginUserSchema, RegisterUserSchema
+from src.presentation.http.auth.dependencies import refresh_token_bearer
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 container.wire(modules=[__name__])
 
 
-@router.post("/register")
+@router.post("/register", status_code=201)
 @inject
-async def register() -> (
-    None
-):  # TODO: сделать форму для регистрации с Email (наследник нижней)
-    pass
+async def register(
+    form_data: RegisterUserSchema,
+    use_case: Annotated[RegisterUserUseCase, Provide[container.register_use_case]],
+) -> dict[str, str]:
+    try:
+        await use_case(
+            username=form_data.username,
+            email=str(form_data.email),
+            password=form_data.password,
+        )
+        return {"message": "User registered successfully"}
+    except UserAlreadyExistsError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="User with this email already exists",
+        )
 
 
-@router.post("/login")
+@router.post("/login", status_code=200)
 @inject
 async def login(  # type: ignore
-    request: Request,
-    form_data: Annotated[..., Depends()],  # TODO: сделать схему для входа с Email
+    form_data: LoginUserSchema,
     use_case: Annotated[LoginUseCase, Provide[container.login_use_case]],
 ):
-    # Извлекаем User-Agent из заголовков
-    user_agent_string = request.headers.get("User-Agent", "")
-    user_agent = parse(user_agent_string)
+    try:
+        creds = await use_case(
+            email=str(form_data.email),
+            password=form_data.password,
+        )
+    except AuthError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
 
-    # Определяем платформу и браузер
-    platform = user_agent.os.family  # Например, "Windows", "iOS", "Android"
-    browser = user_agent.browser.family  # Например, "Chrome", "Firefox", "Safari"
-
-    tokens = await use_case(
-        email=form_data.username,
-        password=form_data.password,
-        ip=request.client.host,
-        platform=platform,
-        browser=browser,
-    )
-    if tokens is None:
-        raise HTTPException(status_code=401, detail="Incorrect username or password")
     response = JSONResponse(
-        content={"access_token": tokens[0], "refresh_token": tokens[1]}
+        content={
+            "access_token": creds.get_authorize(),
+            "refresh_token": creds.get_authenticate(),
+        }
     )
     response.set_cookie(
         key="access_token",
-        value=tokens[0],
+        value=creds.get_authorize(),
         httponly=True,
     )
     response.set_cookie(
-        key="refresh_token", value=tokens[1], httponly=True, secure=True
+        key="refresh_token", value=creds.get_authenticate(), httponly=True, secure=True
     )
     return response
 
 
-@router.post("/update_token")
+@router.post("/update_token", status_code=200)
 @inject
 async def update_token(  # type: ignore
-    request: Request,
-    use_case: Annotated[UpdateTokenUseCase, Depends(get_update_token_use_case)],
-    refresh_token: Annotated[RefreshToken, Provide[container.update_token_use_case]],
+    use_case: Annotated[
+        UpdateCredentialsUseCase, Provide[container.update_token_use_case]
+    ],
+    refresh_token: Annotated[str, Depends(refresh_token_bearer)],
 ):
-    if refresh_token is None:
-        raise HTTPException(status_code=401, detail="Refresh token not found")
-
-    # Извлекаем User-Agent из заголовков
-    user_agent_string = request.headers.get("User-Agent", "")
-    user_agent = parse(user_agent_string)
-
-    # Определяем платформу и браузер
-    platform = user_agent.os.family  # Например, "Windows", "iOS", "Android"
-    browser = user_agent.browser.family  # Например, "Chrome", "Firefox", "Safari"
     try:
-        token = await use_case(
-            ip=request.client.host,
-            platform=platform,
-            browser=browser,
-            refresh_token=refresh_token.token,
+        creds = await use_case(
+            credentials=container.credentials(
+                access_token="",
+                refresh_token=refresh_token,
+            )
         )
     except TokenError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=e.msg)
 
-    response = JSONResponse(content={"access_token": token})
+    response = JSONResponse(content={"access_token": creds.get_authorize()})
     response.set_cookie(
         key="access_token",
-        value=token,
+        value=creds.get_authorize(),
         httponly=True,
     )
     return response

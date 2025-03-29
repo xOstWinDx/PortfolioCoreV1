@@ -45,3 +45,9 @@ class JwtCredentials:
 
     def get_raw_data(self) -> dict[str, str]:
         return {"access_token": self.access_token, "refresh_token": self.refresh_token}
+
+    def get_authorize(self) -> str:
+        return self.access_token
+
+    def get_authenticate(self) -> str:
+        return self.refresh_token

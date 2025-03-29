@@ -9,7 +9,12 @@ from src.domain.filters.users import UserFilter
 
 class RegisterUserUseCase(AbstractUseCase):
     async def __call__(
-        self, *, credentials: Credentials, username: str, email: str, password: str
+        self,
+        username: str,
+        email: str,
+        password: str,
+        *,
+        credentials: Credentials | None = None,
     ) -> User:
         async with self.uow as uow:
             user = await uow.users.get_user(UserFilter(email=email))

@@ -54,7 +54,7 @@ class JwtAuthService(AbstractAuthService):
         if credentials is None:
             return AuthorizationContext(user_id=None, role=RolesEnum.GUEST)
         try:
-            payload = self.decode_token(credentials.get_raw_data()["access_token"])
+            payload = self.decode_token(credentials.get_authorize())
             if not payload or payload.type != TokenType.ACCESS:
                 raise TokenError()
             if not isinstance(payload, AccessTokenPayload):
@@ -64,8 +64,8 @@ class JwtAuthService(AbstractAuthService):
             return AuthorizationContext(user_id=None, role=RolesEnum.GUEST)
         return AuthorizationContext(user_id=payload.sub, role=RolesEnum(payload.role))
 
-    async def renew_credentials(self, refresh_credentials: JwtCredentials):  # type: ignore
-        payload = self.decode_token(refresh_credentials.refresh_token)
+    async def renew_credentials(self, credentials: Credentials):  # type: ignore
+        payload = self.decode_token(credentials.get_authenticate())
         if not payload or not isinstance(payload, RefreshTokenPayload):
             raise TokenError()
         if await self.auth_repo.is_banned(str(payload.sub), payload.jti):
@@ -80,7 +80,7 @@ class JwtAuthService(AbstractAuthService):
 
         yield JwtCredentials(
             access_token=self.create_access_token(user=user)[0],
-            refresh_token=refresh_credentials.refresh_token,
+            refresh_token=credentials.get_authenticate(),
         )
 
     async def _check_exists_tokens(self, user: User) -> str | None:

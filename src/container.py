@@ -56,7 +56,11 @@ class Container(containers.DeclarativeContainer):
 
     create_project_use_case = providers.Factory(AddNewProjectUseCase, uow=uow)
 
-    credentials = providers.Factory(JwtCredentials, token=providers.Callable(str))
+    credentials = providers.Factory(
+        JwtCredentials,
+        access_token=providers.Callable(str),
+        refresh_token=providers.Callable(str),
+    )
 
 
 container = Container()

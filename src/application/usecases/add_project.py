@@ -5,7 +5,9 @@ from src.domain.exceptions.base import ConflictException
 
 
 class AddNewProjectUseCase(AbstractUseCase):
-    async def __call__(self, *, credentials: Credentials, project: Project) -> Project:
+    async def __call__(
+        self, project: Project, *, credentials: Credentials | None = None
+    ) -> Project:
         async with self.uow as uow:
             try:
                 p = await uow.projects.create_project(project)
