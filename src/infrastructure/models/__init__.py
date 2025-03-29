@@ -5,11 +5,10 @@ from .project import (
     ProjectToTagModel,
     ProjectToTechnologyModel,
 )
-from .user import UserModel, UserToRoleModel, RoleModel
+from .user import UserModel, RoleModel
 
 __all__ = [
     "UserModel",
-    "UserToRoleModel",
     "RoleModel",
     "ProjectModel",
     "TagModel",

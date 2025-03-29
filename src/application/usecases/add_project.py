@@ -1,12 +1,9 @@
-from src.application.interfaces.unit_of_work import AbstractUnitOfWork
+from src.application.usecases.abs import AbstractUseCase
 from src.domain.entities.project import Project
 from src.domain.exceptions.base import ConflictException
 
 
-class AddNewProjectUseCase:
-    def __init__(self, uow: AbstractUnitOfWork):
-        self.uow = uow
-
+class AddNewProjectUseCase(AbstractUseCase):
     async def __call__(self, project: Project) -> Project:
         async with self.uow as uow:
             try:

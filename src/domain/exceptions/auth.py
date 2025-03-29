@@ -22,3 +22,11 @@ class AuthError(Exception):
 
     def __repr__(self) -> str:
         return "Email or Password is incorrect"
+
+
+class SubjectNotFoundError(Exception):
+    def __init__(self) -> None:
+        super().__init__("Subject not found")
+
+    def __repr__(self) -> str:
+        return "Subject not found"

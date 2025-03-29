@@ -1,8 +1,5 @@
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any
-
-from src.domain.utils import safe_as_dict
 
 
 class TokenType(StrEnum):
@@ -14,7 +11,7 @@ class TokenType(StrEnum):
 class AccessTokenPayload:
     iss: str
     sub: int | None
-    scope: str
+    role: int
     exp: int
     type: TokenType
 
@@ -41,21 +38,10 @@ class AccessToken:
     payload: AccessTokenPayload
 
 
-@dataclass(frozen=True)
-class TokenMeta:
-    ip: str
-    platform: str
-    browser: str
-    token: str
-    created_at: int  # timestamp
+class JwtCredentials:
+    def __init__(self, access_token: str, refresh_token: str) -> None:
+        self.access_token = access_token
+        self.refresh_token = refresh_token
 
-    def check(self, ip: str, platform: str, browser: str) -> bool:
-        return (
-            self.ip == ip
-            and self.platform == platform
-            and self.browser == browser
-            and isinstance(self.token, str)
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        return safe_as_dict(self)
+    def get_raw_data(self) -> dict[str, str]:
+        return {"access_token": self.access_token, "refresh_token": self.refresh_token}

@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 
 from src.application.interfaces.repositories.projects import AbstractProjectsRepository
-from src.application.interfaces.repositories.tokens import AbstractTokensRepository
 from src.application.interfaces.repositories.users import AbstractUsersRepository
 
 
@@ -10,11 +9,9 @@ class AbstractUnitOfWork(ABC):
         self,
         user_repo_cls: type[AbstractUsersRepository],
         project_repo_cls: type[AbstractProjectsRepository],
-        tokens_repo_cls: type[AbstractTokensRepository],
     ):
         self.user_repo_cls = user_repo_cls
         self.project_repo_cls = project_repo_cls
-        self.tokens_repo_cls = tokens_repo_cls
 
     @property
     @abstractmethod
@@ -24,11 +21,6 @@ class AbstractUnitOfWork(ABC):
     @property
     @abstractmethod
     def projects(self) -> AbstractProjectsRepository:
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def tokens(self) -> AbstractTokensRepository:
         raise NotImplementedError
 
     @abstractmethod

@@ -4,13 +4,12 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from src.application.usecases.add_project import AddNewProjectUseCase
 from src.application.usecases.login import LoginUseCase
-from src.application.usecases.update_token import UpdateTokenUseCase
+from src.application.usecases.register_user import RegisterUserUseCase
+from src.application.usecases.update_token import UpdateCredentialsUseCase
 from src.config import CONFIG
-from src.infrastructure.services.auth import AuthService
+from src.infrastructure.credentials import JwtCredentials
+from src.infrastructure.services.auth import JwtAuthService
 from src.infrastructure.unit_of_work import UnitOfWork
-
-
-# TODO: добавить конфиг как синглтон сюда, а так-же уточнить роль ЮОВ
 
 
 class Container(containers.DeclarativeContainer):
@@ -20,7 +19,7 @@ class Container(containers.DeclarativeContainer):
         async_sessionmaker, bind=engine, expire_on_commit=False
     )
 
-    auth_service = providers.Factory(AuthService)
+    auth_service = providers.Factory(JwtAuthService)
 
     redis = providers.Factory(
         Redis.from_url, url=CONFIG.DEV_REDIS_URL, decode_responses=True
@@ -32,15 +31,21 @@ class Container(containers.DeclarativeContainer):
         redis_client=redis,
     )
 
+    register_use_case = providers.Factory(
+        RegisterUserUseCase, uow=uow, auth_service=auth_service
+    )
+
     login_use_case = providers.Factory(
         LoginUseCase, uow_factory=uow, auth_service_factory=auth_service
     )
 
     update_token_use_case = providers.Factory(
-        UpdateTokenUseCase, auth_service=auth_service, uow=uow
+        UpdateCredentialsUseCase, auth_service=auth_service, uow=uow
     )
 
     create_project_use_case = providers.Factory(AddNewProjectUseCase, uow=uow)
+
+    credentials = providers.Factory(JwtCredentials, token=providers.Callable(str))
 
 
 container = Container()

@@ -1,17 +1,12 @@
 from datetime import datetime, UTC
 
-from src.application.interfaces.services.auth import AbstractAuthService
-from src.application.interfaces.unit_of_work import AbstractUnitOfWork
-from src.domain.entities.user import User
+from src.application.usecases.abs import AbstractUseCase
+from src.domain.entities.user import User, RolesEnum
 from src.domain.exceptions.auth import UserAlreadyExistsError
 from src.domain.filters.users import UserFilter
 
 
-class RegisterUserUseCase:
-    def __init__(self, uow: AbstractUnitOfWork, auth_service: AbstractAuthService):
-        self.uow = uow
-        self.auth_service = auth_service
-
+class RegisterUserUseCase(AbstractUseCase):
     async def __call__(self, username: str, email: str, password: str) -> User:
         async with self.uow as uow:
             user = await uow.users.get_user(UserFilter(email=email))
@@ -20,9 +15,9 @@ class RegisterUserUseCase:
             user = User(
                 username=username,
                 email=email,
-                password=self.auth_service.hash_password(password),
+                password=self.auth.hash_password(password),
                 id=None,
                 created_at=datetime.now(UTC),
-                roles=["user"],
+                role=RolesEnum.USER,
             )
             return await uow.users.register(user)
