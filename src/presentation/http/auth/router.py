@@ -1,36 +1,55 @@
 from typing import Annotated
 
+from dependency_injector.wiring import inject, Provide
 from fastapi import APIRouter, Depends, HTTPException
 from starlette import status
 from starlette.responses import JSONResponse
 
+from src.application.authorize import UseCaseGuard
 from src.application.interfaces.credentials import Credentials
 from src.application.usecases.login import LoginUseCase
 from src.application.usecases.register_user import RegisterUserUseCase
 from src.application.usecases.update_token import UpdateCredentialsUseCase
 from src.container import Container
+from src.context import CredentialsHolder
 from src.domain.exceptions.auth import TokenError, UserAlreadyExistsError, AuthError
+from src.domain.value_objects.auth import AuthorizationContext  # noqa: F401
 from src.infrastructure.schemas.user import LoginUserSchema, RegisterUserSchema
 from src.presentation.http.auth.dependencies import refresh_token_bearer
-from src.presentation.http.dependencies import credentials_schema
+from src.presentation.http.dependencies import credentials_schema, get_creds_holder
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 container = Container()
 
 
+# ────────────────
+# TODO [01.04.2025 | High]
+# Assigned to: stark
+# Description: Добавить везде новую авторизацию
+# Steps:
+#   - добавить
+#   - проверить работу
+# ────────────────
+
+
 @router.post("/register", status_code=201)
+@inject
 async def register(
     form_data: RegisterUserSchema,
-    use_case: RegisterUserUseCase = Depends(lambda: container.register_use_case()),
-) -> dict[str, str]:
+    creds_holder: CredentialsHolder = Depends(get_creds_holder),
+    credentials: Credentials = Depends(credentials_schema),
+    guard: UseCaseGuard[RegisterUserUseCase] = Depends(Provide["register_use_case"]),
+) -> dict[str, str | int | None]:
     try:
-        await use_case(
-            username=form_data.username,
-            email=str(form_data.email),
-            password=form_data.password,
-        )
-        return {"message": "User registered successfully"}
+        guard.configure(credentials=credentials, creds_holder=creds_holder)
+        async with guard as (use_case, context, creds):  # type: (RegisterUserUseCase, AuthorizationContext, Credentials)
+            user = await use_case(
+                username=form_data.username,
+                email=str(form_data.email),
+                password=form_data.password,
+            )
+            return {"message": "User registered successfully", "user_id": user.id}
     except UserAlreadyExistsError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

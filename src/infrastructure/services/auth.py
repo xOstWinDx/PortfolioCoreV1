@@ -145,6 +145,8 @@ class JwtAuthService(AbstractAuthService):
     @staticmethod
     def decode_token(token: str) -> RefreshTokenPayload | AccessTokenPayload | None:
         try:
+            if not isinstance(token, str):
+                return None
             payload: dict[str, Any] = jwt.decode(
                 token,
                 key=CONFIG.JWT_PUBLIC_KEY.read_text(encoding="utf-8"),
@@ -158,7 +160,9 @@ class JwtAuthService(AbstractAuthService):
                 case _:
                     return None
         except jwt.PyJWTError as e:
-            logger.warning(f"Failed to decode token: {e}")
+            logger.warning(
+                f"Failed to decode token: {e}, token_type: {type(token)}", exc_info=e
+            )
             return None
         except TypeError:
             logger.warning(f"Wrong payload: {payload}")  # noqa

@@ -4,6 +4,7 @@ from starlette import status
 from starlette.requests import Request
 
 from src.container import Container
+from src.context import CredentialsHolder
 
 container = Container()
 
@@ -55,3 +56,10 @@ class CredentialsBearer(AccessTokenBearer, RefreshTokenBearer):
 
 
 credentials_schema = CredentialsBearer(auto_error=False)
+
+
+async def get_creds_holder(request: Request) -> CredentialsHolder:
+    if hasattr(request.state, "creds_holder"):
+        return request.state.creds_holder  # type: ignore
+    request.state.creds_holder = CredentialsHolder()
+    return request.state.creds_holder
