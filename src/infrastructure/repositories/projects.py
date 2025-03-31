@@ -1,12 +1,12 @@
 from datetime import datetime
-from sqlite3 import IntegrityError
 from typing import Sequence
 
-from sqlalchemy import Select, Update, Delete, Insert
+from asyncpg import UniqueViolationError
+from sqlalchemy import Select, Update, Delete
+from sqlalchemy.exc import IntegrityError
 
 from src.application.interfaces.repositories.projects import AbstractProjectsRepository
 from src.domain.entities.project import Project
-from src.domain.utils import safe_as_dict
 from src.domain.exceptions.base import ConflictException
 from src.domain.filters.projects import ProjectFilter
 from src.infrastructure.models.mapping import to_model
@@ -80,20 +80,10 @@ class SQLProjectsRepository(AbstractProjectsRepository, SQLAlchemyMixin):
 
         # тут может вылететь ошибка, если нарушается согласованность
         try:
-            stmt = (
-                Insert(self.model)
-                .values(safe_as_dict(project_model))
-                .returning(self.model)
-            )
-            res = await self.session.execute(stmt)
-            project_model = res.scalars().one()
-        except IntegrityError:
-            raise ConflictException  # Выкидываем наше исключение из доменной области
-
-        # получаем обновленный объект
-        self.session.add(project_model)
-        await self.session.flush()
-
+            self.session.add(project_model)
+            await self.session.flush()
+        except (IntegrityError, UniqueViolationError):
+            raise ConflictException(f"Project already exists: {project.title}")
         return project_model.to_domain()
 
     async def update_project(

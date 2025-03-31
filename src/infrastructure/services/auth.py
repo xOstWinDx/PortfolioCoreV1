@@ -27,15 +27,14 @@ class JwtAuthService(AbstractAuthService):
     async def authenticate(
         self, email: str, password: str, user: User | None
     ) -> Credentials:
+        # TODO: изменить работу с токенами, возможно не стоит брать существующий, возможно стоит хранить их по связи с IP
         user_password = user.password if user is not None else uuid.uuid4().bytes
         if self.check_password(user_password, password) and user is not None:
             exist_refresh = await self._check_exists_tokens(user)
             access = self.create_access_token(user)
 
             if exist_refresh is not None:
-                return JwtCredentials(
-                    access_token=access[0], refresh_token=exist_refresh
-                )
+                return JwtCredentials(authorize=access[0], authenticate=exist_refresh)
             else:
                 new_refresh = self.create_refresh_token(user)
                 await self.auth_repo.register(
@@ -45,26 +44,24 @@ class JwtAuthService(AbstractAuthService):
                     payload=new_refresh[0],
                 )
 
-                return JwtCredentials(
-                    access_token=access[0], refresh_token=new_refresh[0]
-                )
+                return JwtCredentials(authorize=access[0], authenticate=new_refresh[0])
         raise AuthError()
 
     async def authorize(self, credentials: Credentials | None) -> AuthorizationContext:
         if credentials is None:
             return AuthorizationContext(user_id=None, role=RolesEnum.GUEST)
-        try:
-            payload = self.decode_token(credentials.get_authorize())
-            if not payload or payload.type != TokenType.ACCESS:
-                raise TokenError()
-            if not isinstance(payload, AccessTokenPayload):
-                raise TokenError("Invalid token type")
-        except (TokenError, AttributeError, jwt.PyJWTError) as e:
-            logger.warning(e)
-            return AuthorizationContext(user_id=None, role=RolesEnum.GUEST)
-        return AuthorizationContext(user_id=payload.sub, role=RolesEnum(payload.role))
+        payload = self.decode_token(credentials.get_authorize())
+        if not payload or payload.type != TokenType.ACCESS:
+            raise TokenError()
+        if not isinstance(payload, AccessTokenPayload):
+            raise TokenError("Invalid token type")
+        return AuthorizationContext(
+            user_id=int(payload.sub), role=RolesEnum(payload.role)
+        )
 
-    async def renew_credentials(self, credentials: Credentials):  # type: ignore
+    async def renew_credentials(
+        self, credentials: Credentials, user: User
+    ) -> Credentials:
         payload = self.decode_token(credentials.get_authenticate())
         if not payload or not isinstance(payload, RefreshTokenPayload):
             raise TokenError()
@@ -76,16 +73,15 @@ class JwtAuthService(AbstractAuthService):
             raise TokenError("Unknown token")
         if payload.sub is None:
             raise TokenError("Unknown user")
-        user: User = yield int(payload.sub)
 
-        yield JwtCredentials(
-            access_token=self.create_access_token(user=user)[0],
-            refresh_token=credentials.get_authenticate(),
+        return JwtCredentials(
+            authorize=self.create_access_token(user=user)[0],
+            authenticate=credentials.get_authenticate(),
         )
 
     async def _check_exists_tokens(self, user: User) -> str | None:
         tokens = await self.auth_repo.get_active_all(subject=str(user.id))
-        if tokens is None:
+        if not tokens:
             return None
         return tokens[0]
 
@@ -96,7 +92,7 @@ class JwtAuthService(AbstractAuthService):
     def create_access_token(self, user: User) -> tuple[str, AccessTokenPayload]:
         payload = AccessTokenPayload(
             iss="portfolio_backend",
-            sub=user.id,
+            sub=str(user.id),
             role=user.role.value,
             exp=int((datetime.now(UTC) + timedelta(minutes=30)).timestamp()),
             type=TokenType.ACCESS,
@@ -107,7 +103,7 @@ class JwtAuthService(AbstractAuthService):
         jti = uuid.uuid4().hex
         payload = RefreshTokenPayload(
             iss="portfolio_backend",
-            sub=user.id,
+            sub=str(user.id),
             exp=int((datetime.now(UTC) + timedelta(days=180)).timestamp()),
             iat=int(datetime.now(UTC).timestamp()),
             jti=jti,
@@ -144,7 +140,8 @@ class JwtAuthService(AbstractAuthService):
                     return RefreshTokenPayload(**payload)
                 case _:
                     return None
-        except jwt.PyJWTError:
+        except jwt.PyJWTError as e:
+            logger.warning(f"Failed to decode token: {e}")
             return None
         except TypeError:
             logger.warning(f"Wrong payload: {payload}")  # noqa
@@ -165,3 +162,12 @@ class JwtAuthService(AbstractAuthService):
         if not isinstance(payload, AccessTokenPayload):
             raise TokenError("Invalid token type")
         return payload
+
+    def get_subject_id(self, credentials: Credentials) -> int:
+        try:
+            return int(self.decode_token(credentials.get_authenticate()).sub)  # type: ignore
+        except (TokenError, AttributeError) as e:
+            logger.warning(
+                f"Invalid token: {credentials.get_authenticate()}", exc_info=e
+            )
+            raise TokenError(f"Invalid token: {credentials.get_authenticate()}")

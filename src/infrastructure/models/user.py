@@ -1,5 +1,5 @@
 from sqlalchemy import ForeignKey
-from sqlalchemy.orm import mapped_column, Mapped
+from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from src.domain.entities.user import User, RolesEnum
 from src.infrastructure.abstract import InfraStructureEntity
@@ -13,7 +13,8 @@ class UserModel(Base, InfraStructureEntity[User]):
     email: Mapped[str] = mapped_column(unique=True)
     password: Mapped[bytes]
     username: Mapped[str]
-    role: Mapped["RoleModel"] = ForeignKey("roles.id")
+    role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"))
+    role: Mapped["RoleModel"] = relationship("RoleModel")
 
     def to_domain(self) -> User:
         return User(
@@ -21,7 +22,7 @@ class UserModel(Base, InfraStructureEntity[User]):
             email=self.email,
             password=self.password,
             username=self.username,
-            role=RolesEnum(self.role.id),
+            role=RolesEnum(self.role_id),
             created_at=self.created_at,
         )
 

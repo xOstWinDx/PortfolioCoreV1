@@ -1,28 +1,30 @@
 from typing import Annotated
 
-from dependency_injector.wiring import inject, Provide
 from fastapi import APIRouter, Depends, HTTPException
 from starlette import status
 from starlette.responses import JSONResponse
 
+from src.application.interfaces.credentials import Credentials
 from src.application.usecases.login import LoginUseCase
 from src.application.usecases.register_user import RegisterUserUseCase
 from src.application.usecases.update_token import UpdateCredentialsUseCase
-from src.container import container
+from src.container import Container
 from src.domain.exceptions.auth import TokenError, UserAlreadyExistsError, AuthError
 from src.infrastructure.schemas.user import LoginUserSchema, RegisterUserSchema
 from src.presentation.http.auth.dependencies import refresh_token_bearer
+from src.presentation.http.dependencies import credentials_schema
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-container.wire(modules=[__name__])
+container = Container()
 
 
+# TODO: нужно сделать так, что бы если были поставлены креды -> обновить куки, подумать как лаконично это сделать.
+# - Декоратор авторизации возвращает их как второй аргумент и он
 @router.post("/register", status_code=201)
-@inject
 async def register(
     form_data: RegisterUserSchema,
-    use_case: Annotated[RegisterUserUseCase, Provide[container.register_use_case]],
+    use_case: RegisterUserUseCase = Depends(lambda: container.register_use_case()),
 ) -> dict[str, str]:
     try:
         await use_case(
@@ -39,13 +41,14 @@ async def register(
 
 
 @router.post("/login", status_code=200)
-@inject
 async def login(  # type: ignore
     form_data: LoginUserSchema,
-    use_case: Annotated[LoginUseCase, Provide[container.login_use_case]],
+    use_case: LoginUseCase = Depends(lambda: container.login_use_case()),
+    credentials: Credentials = Depends(credentials_schema),
 ):
     try:
         creds = await use_case(
+            credentials=credentials,
             email=str(form_data.email),
             password=form_data.password,
         )
@@ -70,12 +73,11 @@ async def login(  # type: ignore
 
 
 @router.post("/update_token", status_code=200)
-@inject
 async def update_token(  # type: ignore
-    use_case: Annotated[
-        UpdateCredentialsUseCase, Provide[container.update_token_use_case]
-    ],
     refresh_token: Annotated[str, Depends(refresh_token_bearer)],
+    use_case: UpdateCredentialsUseCase = Depends(
+        lambda: container.update_token_use_case()
+    ),
 ):
     try:
         creds = await use_case(
@@ -94,3 +96,6 @@ async def update_token(  # type: ignore
         httponly=True,
     )
     return response
+
+
+container.wire(modules=[__name__])  # должен быть внизу.

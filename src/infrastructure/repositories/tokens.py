@@ -1,6 +1,6 @@
 from typing import Any
 
-from redis import Redis
+from redis.asyncio import Redis
 
 from src.application.interfaces.repositories.auth import AbstractAuthRepository
 
@@ -11,6 +11,13 @@ class JWTRedisAuthRepository(AbstractAuthRepository):
 
     def __init__(self, redis_client: Redis):
         self.redis_client = redis_client
+
+    async def __aenter__(self) -> "JWTRedisAuthRepository":
+        await self.redis_client.__aenter__()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):  # type: ignore
+        await self.redis_client.__aexit__(exc_type, exc_val, exc_tb)
 
     async def is_banned(self, subject: str = "*", credentials_id: str = "*") -> bool:  # type: ignore
         key = f"{self.ban_prefix}:{subject}:{credentials_id}"
@@ -57,7 +64,7 @@ class JWTRedisAuthRepository(AbstractAuthRepository):
         keys = await self.redis_client.keys(key)
 
         if len(keys) >= 10:
-            to_delete = keys[0]
+            to_delete = keys[9:]
             await self.redis_client.delete(to_delete)
 
         key = f"{self.white_prefix}:{subject}:{credentials_id}"

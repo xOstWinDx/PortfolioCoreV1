@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from collections.abc import AsyncGenerator
 
 from src.application.interfaces.credentials import Credentials
 from src.application.interfaces.repositories.auth import AbstractAuthRepository
@@ -28,17 +27,10 @@ class AbstractAuthService(ABC):
 
     @abstractmethod
     async def renew_credentials(
-        self, refresh_credentials: Credentials
-    ) -> AsyncGenerator[int | Credentials, User]:
-        """
-        Генератор для обновления credentials с запросом пользователя извне.
-        Ожидаемое использование:
-        1. next() -> int: возвращает user_id из токена.
-        2. send(user_data) -> None: принимает данные пользователя.
-        3. next() -> Credentials: возвращает новые креденшалы.
+        self, credentials: Credentials, user: User
+    ) -> Credentials:
+        raise NotImplementedError
 
-        Raises:
-            StopIteration: если вызвано больше шагов, чем ожидается.
-            ValueError: если переданы некорректные данные.
-        """
+    @abstractmethod
+    def get_subject_id(self, credentials: Credentials) -> int:
         raise NotImplementedError

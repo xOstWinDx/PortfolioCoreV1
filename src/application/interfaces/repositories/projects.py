@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Sequence
 
 from src.domain.entities.project import Project
-from src.domain.filters.project import ProjectFilter
+from src.domain.filters.projects import ProjectFilter
 
 
 class AbstractProjectsRepository(ABC):

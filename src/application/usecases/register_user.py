@@ -28,4 +28,6 @@ class RegisterUserUseCase(AbstractUseCase):
                 created_at=datetime.now(UTC),
                 role=RolesEnum.USER,
             )
-            return await uow.users.register(user)
+            res = await uow.users.register(user)
+            await uow.commit()
+        return res

@@ -4,9 +4,12 @@ from src.domain.entities.project import Project
 from src.domain.exceptions.base import ConflictException
 
 
-class AddNewProjectUseCase(AbstractUseCase):
+class CreateProjectUseCase(AbstractUseCase):
     async def __call__(
-        self, project: Project, *, credentials: Credentials | None = None
+        self,
+        project: Project,
+        *,
+        credentials: Credentials | None = None,
     ) -> Project:
         async with self.uow as uow:
             try:

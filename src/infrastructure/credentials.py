@@ -10,7 +10,7 @@ class TokenType(StrEnum):
 @dataclass(frozen=True)
 class AccessTokenPayload:
     iss: str
-    sub: int | None
+    sub: str
     role: int
     exp: int
     type: TokenType
@@ -19,7 +19,7 @@ class AccessTokenPayload:
 @dataclass(frozen=True)
 class RefreshTokenPayload:
     iss: str
-    sub: int | None
+    sub: str
     exp: int
     iat: int
     jti: str
@@ -39,9 +39,9 @@ class AccessToken:
 
 
 class JwtCredentials:
-    def __init__(self, access_token: str, refresh_token: str) -> None:
-        self.access_token = access_token
-        self.refresh_token = refresh_token
+    def __init__(self, authorize: str, authenticate: str) -> None:
+        self.access_token = authorize
+        self.refresh_token = authenticate
 
     def get_raw_data(self) -> dict[str, str]:
         return {"access_token": self.access_token, "refresh_token": self.refresh_token}

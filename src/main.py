@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
-from src.presentation.http.projects.router import router as projects_router
 from src.presentation.http.auth.router import router as auth_router
+from src.presentation.http.projects.router import router as projects_router
 
 app = FastAPI(
     title="Portfolio Backend",
