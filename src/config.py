@@ -19,6 +19,9 @@ class Config(BaseSettings):
     POSTGRES_HOST: str
     POSTGRES_PORT: int
 
+    REFRESH_TOKEN_EXPIRE_SECONDS: int
+    ACCESS_TOKEN_EXPIRE_SECONDS: int
+
     @property
     def DATABASE_URL(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"

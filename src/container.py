@@ -2,7 +2,7 @@ from dependency_injector import containers, providers
 from redis.asyncio import Redis, ConnectionPool
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
-from src.application.authorize import AuthDecorator
+from src.application.authorize import UseCaseGuard
 from src.application.usecases.add_project import CreateProjectUseCase
 from src.application.usecases.login import LoginUseCase
 from src.application.usecases.register_user import RegisterUserUseCase
@@ -78,7 +78,7 @@ class Container(containers.DeclarativeContainer):
 
     # region Use cases with auth
     register_use_case = providers.Factory(
-        AuthDecorator,
+        UseCaseGuard,
         required_role=RolesEnum.GUEST,
         auth_service=auth_service,
         use_case=_register_use_case,
@@ -86,7 +86,7 @@ class Container(containers.DeclarativeContainer):
         default_context=default_context,
     )
     login_use_case = providers.Factory(
-        AuthDecorator,
+        UseCaseGuard,
         required_role=RolesEnum.GUEST,
         auth_service=auth_service,
         use_case=_login_use_case,
@@ -94,7 +94,7 @@ class Container(containers.DeclarativeContainer):
         default_context=default_context,
     )
     update_token_use_case = providers.Factory(
-        AuthDecorator,
+        UseCaseGuard,
         required_role=RolesEnum.GUEST,
         auth_service=auth_service,
         use_case=_update_token_use_case,
@@ -102,7 +102,7 @@ class Container(containers.DeclarativeContainer):
         default_context=default_context,
     )
     create_project_use_case: CreateProjectUseCase = providers.Factory(
-        AuthDecorator,
+        UseCaseGuard,
         required_role=RolesEnum.ADMIN,
         auth_service=auth_service,
         use_case=_create_project_use_case,

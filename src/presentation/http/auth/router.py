@@ -19,8 +19,6 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 container = Container()
 
 
-# TODO: нужно сделать так, что бы если были поставлены креды -> обновить куки, подумать как лаконично это сделать.
-# - Декоратор авторизации возвращает их как второй аргумент и он
 @router.post("/register", status_code=201)
 async def register(
     form_data: RegisterUserSchema,

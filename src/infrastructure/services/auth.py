@@ -27,7 +27,14 @@ class JwtAuthService(AbstractAuthService):
     async def authenticate(
         self, email: str, password: str, user: User | None
     ) -> Credentials:
-        # TODO: изменить работу с токенами, возможно не стоит брать существующий, возможно стоит хранить их по связи с IP
+        # ────────────────
+        # TODO [31.03.2025 | Medium]
+        # Assigned to: stark
+        # Description: изменить работу с токенами
+        # Steps:
+        #   - возможно не стоит брать существующий,
+        #   - возможно стоит хранить их по связи с IP
+        # ────────────────
         user_password = user.password if user is not None else uuid.uuid4().bytes
         if self.check_password(user_password, password) and user is not None:
             exist_refresh = await self._check_exists_tokens(user)
@@ -94,7 +101,12 @@ class JwtAuthService(AbstractAuthService):
             iss="portfolio_backend",
             sub=str(user.id),
             role=user.role.value,
-            exp=int((datetime.now(UTC) + timedelta(minutes=30)).timestamp()),
+            exp=int(
+                (
+                    datetime.now(UTC)
+                    + timedelta(seconds=CONFIG.ACCESS_TOKEN_EXPIRE_SECONDS)
+                ).timestamp()
+            ),
             type=TokenType.ACCESS,
         )
         return self._create_token(payload), payload
@@ -104,7 +116,12 @@ class JwtAuthService(AbstractAuthService):
         payload = RefreshTokenPayload(
             iss="portfolio_backend",
             sub=str(user.id),
-            exp=int((datetime.now(UTC) + timedelta(days=180)).timestamp()),
+            exp=int(
+                (
+                    datetime.now(UTC)
+                    + timedelta(seconds=CONFIG.REFRESH_TOKEN_EXPIRE_SECONDS)
+                ).timestamp()
+            ),
             iat=int(datetime.now(UTC).timestamp()),
             jti=jti,
             type=TokenType.REFRESH,
