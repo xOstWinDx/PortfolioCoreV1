@@ -4,6 +4,7 @@ from dependency_injector.wiring import inject, Provide
 from fastapi import APIRouter, HTTPException, Depends
 
 from starlette import status
+from starlette.requests import Request
 
 from src.application.authorize import UseCaseGuard
 from src.application.interfaces.credentials import Credentials  # noqa: F401
@@ -22,6 +23,7 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 @inject
 async def create_project(
     project: ProjectSchema,
+    request: Request,
     creds_holder: Annotated[CredentialsHolder, Depends(get_creds_holder)],
     credentials: Annotated[credentials_schema, Depends()],  # type: ignore
     guard: UseCaseGuard[CreateProjectUseCase] = Depends(
@@ -29,8 +31,12 @@ async def create_project(
     ),
 ) -> ProjectResponse:
     try:
-        guard.configure(credentials=credentials, creds_holder=creds_holder)
-        async with guard as (use_case, context, creds):  # type: (CreateProjectUseCase, AuthorizationContext, Credentials)
+        guard.configure(
+            credentials=credentials,
+            creds_holder=creds_holder,
+            device_id=str(request.client.host),
+        )
+        async with guard as (use_case, _, _):  # type: CreateProjectUseCase # type: ignore[no-redef]
             res = await use_case(
                 project=project.to_domain(),
                 credentials=credentials,

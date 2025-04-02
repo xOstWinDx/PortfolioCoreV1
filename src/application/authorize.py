@@ -32,26 +32,41 @@ class UseCaseGuard(Generic[U]):
         self.default_context = default_context
         self.__credentials: None | Credentials = None
         self.__creds_holder: None | CredentialsHolder = None
+        self.__device_id: None | str = None
 
     def configure(
-        self, *, credentials: Credentials, creds_holder: CredentialsHolder
+        self,
+        *,
+        credentials: Credentials,
+        creds_holder: CredentialsHolder,
+        device_id: str,
     ) -> None:
         self.__credentials = credentials
         self.__creds_holder = creds_holder
+        self.__device_id = device_id
 
     async def __aenter__(self) -> tuple[U, AuthorizationContext, Credentials]:
-        if self.__credentials is None or self.__creds_holder is None:
+        if (
+            self.__credentials is None
+            or self.__creds_holder is None
+            or self.__device_id is None
+        ):
             raise RuntimeError("AuthDecorator must be configured before use")
         try:
-            context = await self.auth.authorize(credentials=self.__credentials)
+            context = await self.auth.authorize(
+                credentials=self.__credentials, device_id=self.__device_id
+            )
         except TokenError:
             try:
                 new_credentials = await self._try_renew_creds(
                     credentials=self.__credentials
                 )
-                context = await self.auth.authorize(credentials=new_credentials)
+                context = await self.auth.authorize(
+                    credentials=new_credentials, device_id=self.__device_id
+                )
                 self.__creds_holder.credentials = new_credentials
-            except TokenError:
+            except TokenError as e:
+                logger.warning("Access denied: no token found", exc_info=e)
                 context = self.default_context
         message = f"Access denied: required {self.required_role} or higher, got {context.role}"
         if context.role == RolesEnum.GUEST:
@@ -77,5 +92,6 @@ class UseCaseGuard(Generic[U]):
         credentials = await self.auth.renew_credentials(
             credentials=credentials,
             user=user,
+            device_id=self.__device_id if self.__device_id else "*",
         )
         return credentials

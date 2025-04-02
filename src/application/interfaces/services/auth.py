@@ -12,12 +12,18 @@ class AbstractAuthService(ABC):
 
     @abstractmethod
     async def authenticate(
-        self, email: str, password: str, user: User | None
+        self,
+        email: str,
+        password: str,
+        user: User | None,
+        device_id: str,
     ) -> Credentials:
         raise NotImplementedError
 
     @abstractmethod
-    async def authorize(self, credentials: Credentials | None) -> AuthorizationContext:
+    async def authorize(
+        self, credentials: Credentials | None, device_id: str
+    ) -> AuthorizationContext:
         raise NotImplementedError
 
     @staticmethod
@@ -27,7 +33,7 @@ class AbstractAuthService(ABC):
 
     @abstractmethod
     async def renew_credentials(
-        self, credentials: Credentials, user: User
+        self, credentials: Credentials, user: User, device_id: str
     ) -> Credentials:
         raise NotImplementedError
 

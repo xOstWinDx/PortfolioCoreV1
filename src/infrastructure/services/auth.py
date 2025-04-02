@@ -18,6 +18,8 @@ from src.infrastructure.credentials import (
     RefreshTokenPayload,
     TokenType,
     AccessTokenPayload,
+    Refresh,
+    Access,
 )
 
 logger = logging.getLogger("auth_service")
@@ -25,36 +27,27 @@ logger = logging.getLogger("auth_service")
 
 class JwtAuthService(AbstractAuthService):
     async def authenticate(
-        self, email: str, password: str, user: User | None
+        self, email: str, password: str, user: User | None, device_id: str
     ) -> Credentials:
-        # ────────────────
-        # TODO [31.03.2025 | Medium]
-        # Assigned to: stark
-        # Description: изменить работу с токенами
-        # Steps:
-        #   - возможно не стоит брать существующий,
-        #   - возможно стоит хранить их по связи с IP
-        # ────────────────
         user_password = user.password if user is not None else uuid.uuid4().bytes
         if self.check_password(user_password, password) and user is not None:
-            exist_refresh = await self._check_exists_tokens(user)
+            await self.auth_repo.delete(str(user.id), device_id)
             access = self.create_access_token(user)
+            new_refresh = self.create_refresh_token(user)
+            await self.auth_repo.register(
+                subject=str(new_refresh.payload.sub),
+                credentials_id=new_refresh.payload.jti,
+                expiration=new_refresh.payload.exp,
+                credentials=new_refresh.token,
+                device_id=device_id,
+            )
 
-            if exist_refresh is not None:
-                return JwtCredentials(authorize=access[0], authenticate=exist_refresh)
-            else:
-                new_refresh = self.create_refresh_token(user)
-                await self.auth_repo.register(
-                    subject=str(new_refresh[1].sub),
-                    credentials_id=new_refresh[1].jti,
-                    expiration=new_refresh[1].exp,
-                    payload=new_refresh[0],
-                )
-
-                return JwtCredentials(authorize=access[0], authenticate=new_refresh[0])
+            return JwtCredentials(authorize=access[0], authenticate=new_refresh[0])
         raise AuthError()
 
-    async def authorize(self, credentials: Credentials | None) -> AuthorizationContext:
+    async def authorize(
+        self, credentials: Credentials | None, device_id: str
+    ) -> AuthorizationContext:
         if credentials is None:
             return AuthorizationContext(user_id=None, role=RolesEnum.GUEST)
         payload = self.decode_token(credentials.get_authorize())
@@ -67,36 +60,42 @@ class JwtAuthService(AbstractAuthService):
         )
 
     async def renew_credentials(
-        self, credentials: Credentials, user: User
+        self, credentials: Credentials, user: User, device_id: str
     ) -> Credentials:
         payload = self.decode_token(credentials.get_authenticate())
         if not payload or not isinstance(payload, RefreshTokenPayload):
             raise TokenError()
-        if await self.auth_repo.is_banned(str(payload.sub), payload.jti):
-            raise TokenError("Token is banned")
-
-        token = await self.auth_repo.get_active_one(str(payload.sub), payload.jti)
+        token = await self.auth_repo.get_active_one(
+            str(payload.sub), payload.jti, device_id=device_id
+        )
         if token is None:
             raise TokenError("Unknown token")
         if payload.sub is None:
             raise TokenError("Unknown user")
 
-        return JwtCredentials(
-            authorize=self.create_access_token(user=user)[0],
-            authenticate=credentials.get_authenticate(),
+        await self.auth_repo.delete(str(payload.sub), payload.jti)
+
+        access = self.create_access_token(user)
+        refresh = self.create_refresh_token(user)
+
+        await self.auth_repo.register(
+            subject=str(refresh.payload.sub),
+            credentials_id=refresh.payload.jti,
+            expiration=refresh.payload.exp,
+            credentials=refresh.token,
+            device_id=device_id,
         )
 
-    async def _check_exists_tokens(self, user: User) -> str | None:
-        tokens = await self.auth_repo.get_active_all(subject=str(user.id))
-        if not tokens:
-            return None
-        return tokens[0]
+        return JwtCredentials(
+            authorize=access.token,
+            authenticate=refresh.token,
+        )
 
     @staticmethod
     def check_password(user_password: bytes, plain_password: str) -> bool:
         return bcrypt.checkpw(plain_password.encode(), user_password)  # type: ignore
 
-    def create_access_token(self, user: User) -> tuple[str, AccessTokenPayload]:
+    def create_access_token(self, user: User) -> Access:
         payload = AccessTokenPayload(
             iss="portfolio_backend",
             sub=str(user.id),
@@ -109,9 +108,9 @@ class JwtAuthService(AbstractAuthService):
             ),
             type=TokenType.ACCESS,
         )
-        return self._create_token(payload), payload
+        return Access(token=self._create_token(payload), payload=payload)
 
-    def create_refresh_token(self, user: User) -> tuple[str, RefreshTokenPayload]:
+    def create_refresh_token(self, user: User) -> Refresh:
         jti = uuid.uuid4().hex
         payload = RefreshTokenPayload(
             iss="portfolio_backend",
@@ -126,7 +125,7 @@ class JwtAuthService(AbstractAuthService):
             jti=jti,
             type=TokenType.REFRESH,
         )
-        return self._create_token(payload), payload
+        return Refresh(token=self._create_token(payload), payload=payload)
 
     @staticmethod
     def hash_password(password: str) -> bytes:

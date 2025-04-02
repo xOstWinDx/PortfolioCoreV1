@@ -1,14 +1,15 @@
-from typing import Any
+import logging
 
+from redis import ResponseError
 from redis.asyncio import Redis
 
 from src.application.interfaces.repositories.auth import AbstractAuthRepository
+from src.infrastructure.models.auth import AuthMetaData, Payload
+
+logger = logging.getLogger(__name__)
 
 
 class JWTRedisAuthRepository(AbstractAuthRepository):
-    ban_prefix = "black"
-    white_prefix = "white"
-
     def __init__(self, redis_client: Redis):
         self.redis_client = redis_client
 
@@ -19,54 +20,61 @@ class JWTRedisAuthRepository(AbstractAuthRepository):
     async def __aexit__(self, exc_type, exc_val, exc_tb):  # type: ignore
         await self.redis_client.__aexit__(exc_type, exc_val, exc_tb)
 
-    async def is_banned(self, subject: str = "*", credentials_id: str = "*") -> bool:  # type: ignore
-        key = f"{self.ban_prefix}:{subject}:{credentials_id}"
+    async def is_active(
+        self, subject: str, credentials_id: str, device_id: str
+    ) -> bool:
+        key = self.make_key(
+            subject=subject, credentials_id=credentials_id, device_id=device_id
+        )
         return bool(await self.redis_client.exists(key))
 
     async def get_active_one(  # type: ignore
-        self, subject: str = "*", credentials_id: str = "*"
-    ) -> tuple[str, str] | None:
-        key = f"{self.white_prefix}:{subject}:{credentials_id}"
-        token: str = await self.redis_client.get(key)
-        if not token:
-            return None
-        return key, token
+        self, subject: str, credentials_id: str, device_id: str
+    ) -> AuthMetaData | None:
+        key = self.make_key(
+            subject=subject, credentials_id=credentials_id, device_id=device_id
+        )
+        return await self.redis_client.get(key)  # type: ignore
 
     async def get_active_all(  # type: ignore
-        self, subject: str = "*", credentials_id: str = "*"
-    ) -> list[str]:
+        self, subject: str = "*", credentials_id: str = "*", device_id: str = "*"
+    ) -> list[AuthMetaData]:
         keys: list[str] = await self.redis_client.keys(
-            f"{self.white_prefix}:{subject}:{credentials_id}"
+            self.make_key(subject, credentials_id, device_id)
         )
-        res = []
-        for key in keys:
-            token = await self.redis_client.get(key)
-            if not token:
-                continue
-            res.append(token)
+        res = [
+            AuthMetaData(key=k, payload=Payload(**await self.redis_client.hgetall(k)))
+            for k in keys
+        ]
         return res
 
-    async def delete(self, key: str) -> bool:  # type: ignore
-        res = await self.redis_client.delete(key)
-        return bool(res)
+    async def delete(self, subject_id: str, device_id: str) -> bool:
+        keys: list[str] = await self.redis_client.keys(
+            self.make_key(subject=subject_id, credentials_id="*", device_id=device_id)
+        )
+        if not keys:
+            return False
+        try:
+            await self.redis_client.delete(*keys)
+        except ResponseError as e:
+            logger.warning(f"Redis delete failed: {keys}", exc_info=e)
+            return False
+        return True
 
-    async def ban(  # type: ignore
-        self, subject: str = "*", credentials_id: str = "*", reason: str = ""
-    ) -> Any:
-        src = f"{self.white_prefix}:{subject}:{credentials_id}"
-        dst = f"{self.ban_prefix}:{subject}:{credentials_id}"
-        return await self.redis_client.rename(src, dst)
-
-    async def register(  # type: ignore
-        self, subject: str, credentials_id: str, expiration: int, payload: str
+    async def register(
+        self,
+        subject: str,
+        credentials_id: str,
+        expiration: int,
+        credentials: str,
+        device_id: str,
     ) -> bool:
-        key = f"{self.white_prefix}:{subject}:*"
-        keys = await self.redis_client.keys(key)
-
-        if len(keys) >= 10:
-            to_delete = keys[9:]
-            await self.redis_client.delete(to_delete)
-
-        key = f"{self.white_prefix}:{subject}:{credentials_id}"
-        res = await self.redis_client.set(name=key, value=payload, ex=expiration)
+        key = self.make_key(
+            subject=subject, credentials_id=credentials_id, device_id=device_id
+        )
+        res = await self.redis_client.set(name=key, value=credentials, ex=expiration)
         return bool(res)
+
+    @staticmethod
+    def make_key(subject: str, credentials_id: str, device_id: str) -> str:
+        return f"tokens:{subject}:{credentials_id}:{device_id}"

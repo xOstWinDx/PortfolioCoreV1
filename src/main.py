@@ -5,9 +5,12 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from src.config import CONFIG
+from src.container import Container
 from src.context import CredentialsHolder
 from src.presentation.http.auth.router import router as auth_router
 from src.presentation.http.projects.router import router as projects_router
+
+container = Container()
 
 app = FastAPI(
     title="Portfolio Backend",
@@ -34,7 +37,21 @@ async def credentials_middleware(
             httponly=True,
             max_age=CONFIG.ACCESS_TOKEN_EXPIRE_SECONDS,
         )
+        response.set_cookie(
+            "refresh_token",
+            creds.get_authenticate(),
+            httponly=True,
+            max_age=CONFIG.REFRESH_TOKEN_EXPIRE_SECONDS,
+            secure=True,
+        )
     return response
+
+
+# @app.middleware("http")
+# async def rate_limit_middleware(
+#     request: Request, call_next: Callable[[Request], Awaitable[Response]]
+# ):
+#     pass
 
 
 @app.get("/")

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import NamedTuple
 
 
 class TokenType(StrEnum):
@@ -26,18 +27,6 @@ class RefreshTokenPayload:
     type: TokenType
 
 
-@dataclass(frozen=True)
-class RefreshToken:
-    token: str
-    payload: RefreshTokenPayload
-
-
-@dataclass(frozen=True)
-class AccessToken:
-    token: str
-    payload: AccessTokenPayload
-
-
 class JwtCredentials:
     def __init__(self, authorize: str, authenticate: str) -> None:
         self.access_token = authorize
@@ -51,3 +40,7 @@ class JwtCredentials:
 
     def get_authenticate(self) -> str:
         return self.refresh_token
+
+
+Refresh = NamedTuple("Refresh", [("token", str), ("payload", RefreshTokenPayload)])
+Access = NamedTuple("Access", [("token", str), ("payload", AccessTokenPayload)])
