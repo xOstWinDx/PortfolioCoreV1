@@ -1,6 +1,9 @@
+from time import time
 from typing import Awaitable, Callable
 
+from dependency_injector.wiring import Provide, inject
 from fastapi import FastAPI
+from redis.asyncio import Redis
 from starlette.requests import Request
 from starlette.responses import Response
 
@@ -24,7 +27,8 @@ app.include_router(auth_router)
 
 @app.middleware("http")
 async def credentials_middleware(
-    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
 ) -> Response:
     creds_holder = CredentialsHolder()  # Ящик для новый кредов.
     request.state.creds_holder = creds_holder
@@ -47,13 +51,57 @@ async def credentials_middleware(
     return response
 
 
-# @app.middleware("http")
-# async def rate_limit_middleware(
-#     request: Request, call_next: Callable[[Request], Awaitable[Response]]
-# ):
-#     pass
+@app.middleware("http")
+@inject
+async def rate_limit_middleware(
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
+    redis: Redis = Provide["redis"],
+) -> Response:
+    """Базовая реализация лимитирования запросов через алгоритм Фиксированного окна."""
+    async with redis:
+        async with redis.pipeline(transaction=True) as pipe:
+            key = f"rate_limit:{request.client.host}"
+            await pipe.exists(key)
+            await pipe.get(key)
+            await pipe.ttl(key)
+            exist, count, ttl = await pipe.execute()
+            count = int(count) if count is not None else CONFIG.RATE_LIMIT_LIMIT
+            if exist:
+                if count <= 0:
+                    return Response(
+                        status_code=429,
+                        headers={
+                            "X-Rate-Limit": str(CONFIG.RATE_LIMIT_LIMIT),
+                            "X-Rate-Limit-Remaining": "0",
+                            "X-Rate-Limit-Reset": str(int(time() + ttl)),
+                            "Retry-After": str(ttl),
+                        },
+                    )
+                await pipe.decr(key)
+                await pipe.execute()
+            else:
+                await pipe.set(
+                    key,
+                    CONFIG.RATE_LIMIT_LIMIT - 1,
+                    ex=CONFIG.RATE_LIMIT_EXPIRE_SECONDS,
+                )
+                await pipe.execute()
+
+    response = await call_next(request)
+    response.headers["X-Rate-Limit"] = str(CONFIG.RATE_LIMIT_LIMIT)
+    response.headers["X-Rate-Limit-Remaining"] = (
+        str(count - 1) if count else CONFIG.RATE_LIMIT_LIMIT
+    )
+    response.headers["X-Rate-Limit-Reset"] = str(
+        int(time() + ttl if ttl else CONFIG.RATE_LIMIT_EXPIRE_SECONDS)
+    )
+    return response
 
 
 @app.get("/")
 async def root() -> dict[str, str]:
     return {"message": "Hello World!"}
+
+
+container.wire(modules=[__name__])

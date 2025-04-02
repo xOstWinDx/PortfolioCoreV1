@@ -22,6 +22,9 @@ class Config(BaseSettings):
     REFRESH_TOKEN_EXPIRE_SECONDS: int
     ACCESS_TOKEN_EXPIRE_SECONDS: int
 
+    RATE_LIMIT_LIMIT: int = 10
+    RATE_LIMIT_EXPIRE_SECONDS: int = 5
+
     @property
     def DATABASE_URL(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
