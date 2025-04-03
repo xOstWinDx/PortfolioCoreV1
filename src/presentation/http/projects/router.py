@@ -18,6 +18,16 @@ from src.presentation.http.dependencies import credentials_schema, get_creds_hol
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
+# ────────────────
+# TODO [03.04.2025 | High]
+# Assigned to: stark
+# Description: Добавить ендпоинт для получения проектов
+# Steps:
+#   - Сделать ProjectService соединить там репозиторий и кеш
+#   - реализовать пагинацию
+#   -
+# ────────────────
+
 
 @router.post("/", status_code=201)
 @inject
