@@ -4,7 +4,7 @@ from datetime import datetime
 
 @dataclass
 class Comment:
-    id: str
+    id: str | None
     text: str
     author_id: int
     author_name: str
@@ -29,6 +29,6 @@ class Post:
     author_photo_url: str
     dislikes: set[int]  # ids of users that disliked this post
     likes: set[int]  # ids of users that liked this post
-    created_at: datetime | None
+    created_at: datetime
     comments_count: int
     recent_comments: list[Comment]
