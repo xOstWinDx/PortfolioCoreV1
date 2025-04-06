@@ -1,15 +1,21 @@
+from functools import partial
+
 from dependency_injector import containers, providers
+from motor.motor_asyncio import AsyncIOMotorClient
 from redis.asyncio import Redis, ConnectionPool
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from src.application.authorize import UseCaseGuard
+from src.application.services.posts import PostsService
+from src.application.usecases.posts.create_post import CreatePostUseCase
+from src.application.usecases.posts.get_posts import GetPostsUseCase
 from src.application.usecases.projects.add_project import CreateProjectUseCase
 from src.application.usecases.users.login import LoginUseCase
 from src.application.usecases.users.register_user import RegisterUserUseCase
-from src.application.usecases.update_token import UpdateCredentialsUseCase
 from src.config import CONFIG
 from src.domain.entities.user import RolesEnum
 from src.domain.value_objects.auth import AuthorizationContext
+from src.infrastructure.clients.cache import RedisCacheClient
 from src.infrastructure.credentials import JwtCredentials
 from src.infrastructure.repositories.tokens import JWTRedisAuthRepository
 from src.infrastructure.services.auth import JwtAuthService
@@ -18,6 +24,12 @@ from src.infrastructure.unit_of_work import UnitOfWork
 
 class Container(containers.DeclarativeContainer):
     # region Base depends
+
+    mongo_factory = partial(
+        AsyncIOMotorClient,
+        CONFIG.MONGO_URL,
+    )
+
     engine = providers.Singleton(create_async_engine, url=CONFIG.DATABASE_URL)
 
     session_factory = providers.Singleton(
@@ -35,8 +47,15 @@ class Container(containers.DeclarativeContainer):
     )
     auth_repo = providers.Factory(JWTRedisAuthRepository, redis_client=redis)
     auth_service = providers.Factory(JwtAuthService, auth_repo=auth_repo)
+    cache_client = providers.Singleton(RedisCacheClient, redis_client=redis)
 
-    uow = providers.Factory(UnitOfWork, session_factory=session_factory)
+    uow = providers.Factory(
+        UnitOfWork,
+        sql_session_factory=session_factory,
+        mongo_client_factory=mongo_factory,
+    )
+    posts = providers.Factory(PostsService, uow=uow, cache_client=cache_client)
+
     # endregion
 
     # region Credentials
@@ -64,16 +83,19 @@ class Container(containers.DeclarativeContainer):
         uow=uow,
         auth=auth_service,
     )
-    _update_token_use_case = providers.Factory(
-        UpdateCredentialsUseCase,
-        auth=auth_service,
-        uow=uow,
-    )
     _create_project_use_case = providers.Factory(
         CreateProjectUseCase,
         uow=uow,
         auth=auth_service,
     )
+
+    _create_post_use_case = providers.Factory(
+        CreatePostUseCase, uow=uow, auth=auth_service, posts=posts
+    )
+    _get_posts_use_case = providers.Factory(
+        GetPostsUseCase, uow=uow, auth=auth_service, posts=posts
+    )
+
     # endregion
 
     # region Use cases with auth
@@ -93,19 +115,27 @@ class Container(containers.DeclarativeContainer):
         uow=uow,
         default_context=default_context,
     )
-    update_token_use_case = providers.Factory(
-        UseCaseGuard,
-        required_role=RolesEnum.GUEST,
-        auth_service=auth_service,
-        use_case=_update_token_use_case,
-        uow=uow,
-        default_context=default_context,
-    )
     create_project_use_case: CreateProjectUseCase = providers.Factory(
         UseCaseGuard,
         required_role=RolesEnum.ADMIN,
         auth_service=auth_service,
         use_case=_create_project_use_case,
+        uow=uow,
+        default_context=default_context,
+    )
+    create_post_use_case = providers.Factory(
+        UseCaseGuard,
+        required_role=RolesEnum.ADMIN,
+        auth_service=auth_service,
+        use_case=_create_post_use_case,
+        uow=uow,
+        default_context=default_context,
+    )
+    get_posts_use_case = providers.Factory(
+        UseCaseGuard,
+        required_role=RolesEnum.GUEST,
+        auth_service=auth_service,
+        use_case=_get_posts_use_case,
         uow=uow,
         default_context=default_context,
     )

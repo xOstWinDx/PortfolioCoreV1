@@ -1,7 +1,11 @@
+from typing import Annotated
+
 from src.application.interfaces.clients.cache import AbstractCacheClient
 from src.application.interfaces.unit_of_work import AbstractUnitOfWork
 from src.config import CONFIG
 from src.domain.entities.post import Post, Comment
+
+HasNext = Annotated[bool, "has_next"]
 
 
 class PostsService:
@@ -29,19 +33,21 @@ class PostsService:
 
     async def get_posts(
         self, last_id: str | None = None, limit: int = 20
-    ) -> list[Post] | None:
+    ) -> tuple[list[Post], HasNext] | None:
         if cached := await self.cache_client.get(f"posts:{last_id}:{limit}"):
-            return [Post.from_dict(post) for post in cached]
+            posts = cached["data"]
+            has_next = cached["has_next"]
+            return [Post.from_dict(post) for post in posts], has_next
 
-        posts = await self.uow.posts.get_posts(last_id=last_id, limit=limit)
+        posts, has_next = await self.uow.posts.get_posts(last_id=last_id, limit=limit)
 
         await self.cache_client.set(
             key=f"posts:{last_id}:{limit}",
-            data=[post.to_dict() for post in posts],  # noqa
+            data={"data": [post.to_dict() for post in posts], "has_next": has_next},  # noqa
             expiration=CONFIG.POSTS_CACHE_EXPIRE_SECONDS,
         )
 
-        return posts
+        return posts, has_next
 
     async def create_post(self, post: Post) -> Post:
         return await self.uow.posts.create_post(post=post)
@@ -54,22 +60,26 @@ class PostsService:
 
     async def get_comments(
         self, post_id: str, last_id: str | None = None, limit: int = 10
-    ) -> list[Comment] | None:
+    ) -> tuple[list[Comment], HasNext] | None:
         key = self.comments_key(post_id=post_id, last_id=last_id, limit=limit)
         if cached := await self.cache_client.get(key):
-            return [Comment.from_dict(comment) for comment in cached]
+            comments = cached["data"]
+            has_next = cached["has_next"]
+            return [Comment.from_dict(comment) for comment in comments], has_next
 
-        comments = await self.uow.posts.get_comments(
+        comments, has_next = await self.uow.posts.get_comments(
             post_id=post_id, last_id=last_id, limit=limit
         )
-
         await self.cache_client.set(
             key=key,
-            data=[comment.to_dict() for comment in comments],  # noqa
+            data={
+                "data": [comment.to_dict() for comment in comments],
+                "has_next": has_next,
+            },  # noqa
             expiration=CONFIG.COMMENTS_CACHE_EXPIRE_SECONDS,
         )
 
-        return comments
+        return comments, has_next
 
     async def create_comment(self, post_id: str, comment: Comment) -> Comment:
         if res := await self.uow.posts.create_comment(comment):
@@ -111,19 +121,24 @@ class PostsService:
 
     async def get_answers(
         self, comment_id: str, last_id: str | None = None, limit: int = 10
-    ) -> list[Comment] | None:
+    ) -> tuple[list[Comment], HasNext] | None:
         key = self.answers_key(parent_id=comment_id, last_id=last_id, limit=limit)
         if cached := await self.cache_client.get(key):
-            return [Comment.from_dict(comment) for comment in cached]
+            answers = cached["data"]
+            has_next = cached["has_next"]
+            return [Comment.from_dict(comment) for comment in answers], has_next
 
-        answers = await self.uow.posts.get_answers(
+        answers, has_next = await self.uow.posts.get_answers(
             comment_id=comment_id, last_id=last_id, limit=limit
         )
 
         await self.cache_client.set(
             key=key,
-            data=[answer.to_dict() for answer in answers],  # noqa
+            data={
+                "data": [answer.to_dict() for answer in answers],
+                "has_next": has_next,
+            },  # noqa
             expiration=CONFIG.COMMENTS_CACHE_EXPIRE_SECONDS,
         )
 
-        return answers
+        return answers, has_next

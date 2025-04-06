@@ -7,7 +7,7 @@ from src.application.interfaces.unit_of_work import AbstractUnitOfWork
 from src.application.usecases.abs import AbstractUseCase
 from src.context import CredentialsHolder
 from src.domain.entities.user import RolesEnum
-from src.domain.exceptions.auth import TokenError
+from src.domain.exceptions.auth import TokenError, AccessDeniedError
 from src.domain.filters.users import UserFilter
 from src.domain.value_objects.auth import AuthorizationContext
 
@@ -72,7 +72,7 @@ class UseCaseGuard(Generic[U]):
         if context.role == RolesEnum.GUEST:
             message += " (possibly due to an invalid or expired token)"
         if context.role < self.required_role:
-            raise PermissionError(message)
+            raise AccessDeniedError(message)
         credentials = self.__creds_holder.credentials or self.__credentials
 
         return self.__use_case, context, credentials

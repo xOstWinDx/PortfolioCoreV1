@@ -11,7 +11,7 @@ class AbstractPostsRepository(ABC):
         last_id: str | None = None,
         limit: int = 20,
         sort: Literal["asc", "desc"] = "desc",
-    ) -> list[Post]:
+    ) -> tuple[list[Post], bool]:
         raise NotImplementedError
 
     @abstractmethod
@@ -33,7 +33,7 @@ class AbstractPostsRepository(ABC):
         last_id: str | None = None,
         limit: int = 10,
         sort: Literal["asc", "desc"] = "desc",
-    ) -> list[Comment]:
+    ) -> tuple[list[Comment], bool] | None:
         raise NotImplementedError
 
     @abstractmethod
@@ -59,5 +59,5 @@ class AbstractPostsRepository(ABC):
         last_id: str | None = None,
         limit: int = 10,
         sort: Literal["asc", "desc"] = "desc",
-    ) -> list[Comment]:
+    ) -> tuple[list[Comment], bool]:
         raise NotImplementedError

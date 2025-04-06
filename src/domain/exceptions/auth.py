@@ -30,3 +30,12 @@ class SubjectNotFoundError(Exception):
 
     def __repr__(self) -> str:
         return "Subject not found"
+
+
+class AccessDeniedError(Exception):
+    def __init__(self, msg: str) -> None:
+        super().__init__(msg)
+        self.msg = msg
+
+    def __repr__(self) -> str:
+        return self.msg

@@ -21,8 +21,10 @@ class RedisCacheClient(AbstractCacheClient):
         data = json.dumps(data, ensure_ascii=False)
         return await self.redis_client.set(name=key, value=data, ex=expiration)  # type: ignore
 
-    async def get(self, key: str) -> list[Any] | None:
-        return json.loads(await self.redis_client.get(key))  # type: ignore
+    async def get(self, key: str) -> dict[str, Any] | None:
+        if data := await self.redis_client.get(key):
+            return json.loads(data)  # type: ignore
+        return None
 
     async def delete(self, *keys: str) -> None:
         return await self.redis_client.delete(*keys)  # type: ignore

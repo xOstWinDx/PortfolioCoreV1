@@ -15,7 +15,7 @@ class AbstractCacheClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get(self, key: str) -> list[Any] | None:
+    async def get(self, key: str) -> dict[str, Any] | None:
         raise NotImplementedError
 
     @abstractmethod

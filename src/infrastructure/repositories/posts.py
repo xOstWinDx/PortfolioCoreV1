@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Literal
 
 from bson import ObjectId
@@ -19,7 +18,7 @@ class MongoPostsRepository(AbstractPostsRepository):
         last_id: str | None = None,
         limit: int = 20,
         sort: Literal["asc", "desc"] = "desc",
-    ) -> list[Post]:
+    ) -> tuple[list[Post], bool]:
         pipline = [
             {
                 "$match": {
@@ -35,46 +34,28 @@ class MongoPostsRepository(AbstractPostsRepository):
                 }
             },
             {"$sort": {"_id": -1 if sort == "desc" else 1}},
-            {"$limit": limit},
+            {"$limit": limit + 1},
             {
                 "$lookup": {
                     "from": "comments",
                     "localField": "_id",
                     "foreignField": "post_id",
-                    "as": "comments",
+                    "as": "recent_comments",
                     "pipeline": [{"$sort": {"_id": -1}}, {"$limit": 5}],
                 }
             },
         ]
         cursor = self.db["posts"].aggregate(pipline)
-        result = [
-            Post(
-                id=str(post.get("_id")),
-                title=post.get("title"),
-                content=post.get("content"),
-                author_id=post.get("author_id"),
-                author_name=post.get("author_name"),
-                author_email=post.get("author_email"),
-                author_photo_url=post.get("author_photo_url"),
-                dislikes=post.get("dislikes"),
-                likes=post.get("likes"),
-                created_at=datetime.fromisoformat(post["created_at"]),
-                comments_count=post.get("comments_count", 0),
-                recent_comments=post.get("comments", []),
-            )
-            async for post in cursor
-        ]
-        return result
+        result = [Post.from_dict(post) async for post in cursor]
+        has_next = len(result) > limit
+        return result[:limit], has_next
 
     async def create_post(self, post: Post) -> Post:
         res = await self.db["posts"].insert_one(
             {
                 "title": post.title,
                 "content": post.content,
-                "author_id": post.author_id,
-                "author_name": post.author_name,
-                "author_email": post.author_email,
-                "author_photo_url": post.author_photo_url,
+                "author": post.author.to_dict(),  # type: ignore
                 "dislikes": [],
                 "likes": [],
                 "created_at": post.created_at.isoformat(),
@@ -100,7 +81,7 @@ class MongoPostsRepository(AbstractPostsRepository):
         last_id: str | None = None,
         limit: int = 10,
         sort: Literal["asc", "desc"] = "desc",
-    ) -> list[Comment]:
+    ) -> tuple[list[Comment], bool]:
         pipline = [
             {
                 "$match": {
@@ -117,25 +98,14 @@ class MongoPostsRepository(AbstractPostsRepository):
                 }
             },
             {"$sort": {"_id": -1 if sort == "desc" else 1}},
-            {"$limit": limit},
+            {"$limit": limit + 1},
         ]
-        return [
-            Comment(
-                id=str(comment.get("_id")),
-                text=comment.get("text"),
-                author_id=comment.get("author_id"),
-                author_name=comment.get("author_name"),
-                author_email=comment.get("author_email"),
-                author_photo_url=comment.get("author_photo_url"),
-                parent_id=comment.get("parent_id"),
-                post_id=comment.get("post_id"),
-                dislikes=comment.get("dislikes"),
-                likes=comment.get("likes"),
-                answers_count=comment.get("answers_count"),
-                created_at=datetime.fromisoformat(comment["created_at"]),
-            )
+        comments = [
+            Comment.from_dict(comment)
             async for comment in self.db["comments"].aggregate(pipline)
         ]
+        has_next = len(comments) > limit
+        return comments[:limit], has_next
 
     async def dislike_post(self, post_id: str, user_id: int) -> bool:
         res = await self.db["posts"].update_one(
@@ -151,10 +121,7 @@ class MongoPostsRepository(AbstractPostsRepository):
         res = await self.db["comments"].insert_one(
             {
                 "text": comment.text,
-                "author_id": comment.author_id,
-                "author_name": comment.author_name,
-                "author_email": comment.author_email,
-                "author_photo_url": comment.author_photo_url,
+                "author": comment.author.to_dict(),
                 "parent_id": None,
                 "post_id": comment.post_id,
                 "dislikes": [],
@@ -176,7 +143,7 @@ class MongoPostsRepository(AbstractPostsRepository):
         last_id: str | None = None,
         limit: int = 10,
         sort: Literal["asc", "desc"] = "desc",
-    ) -> list[Comment]:
+    ) -> tuple[list[Comment], bool]:
         pipeline = [
             {
                 "$match": {
@@ -193,34 +160,20 @@ class MongoPostsRepository(AbstractPostsRepository):
                 },
             },
             {"$sort": {"_id": -1 if sort == "desc" else 1}},
-            {"$limit": limit},
+            {"$limit": limit + 1},
         ]
-        return [
-            Comment(
-                id=str(comment.get("_id")),
-                text=comment.get("text"),
-                author_id=comment.get("author_id"),
-                author_name=comment.get("author_name"),
-                author_email=comment.get("author_email"),
-                author_photo_url=comment.get("author_photo_url"),
-                parent_id=comment.get("parent_id"),
-                post_id=comment.get("post_id"),
-                dislikes=comment.get("dislikes"),
-                likes=comment.get("likes"),
-                answers_count=comment.get("answers_count"),
-                created_at=datetime.fromisoformat(comment["created_at"]),
-            )
+        comments = [
+            Comment.from_dict(comment)
             async for comment in self.db["comments"].aggregate(pipeline)
         ]
+        has_next = len(comments) > limit
+        return comments[:limit], has_next
 
     async def create_answer(self, answer: Comment, comment_id: str) -> Comment:
         res = await self.db["comments"].insert_one(
             {
                 "text": answer.text,
-                "author_id": answer.author_id,
-                "author_name": answer.author_name,
-                "author_email": answer.author_email,
-                "author_photo_url": answer.author_photo_url,
+                "author": answer.author.to_dict(),
                 "parent_id": comment_id,
                 "post_id": answer.post_id,
                 "dislikes": [],

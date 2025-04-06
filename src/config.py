@@ -19,6 +19,11 @@ class Config(BaseSettings):
     POSTGRES_HOST: str
     POSTGRES_PORT: int
 
+    MONGO_USER: str
+    MONGO_PASSWORD: str
+    MONGO_HOST: str
+    MONGO_PORT: int
+
     REFRESH_TOKEN_EXPIRE_SECONDS: int
     ACCESS_TOKEN_EXPIRE_SECONDS: int
 
@@ -33,6 +38,10 @@ class Config(BaseSettings):
     @property
     def DATABASE_URL(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+
+    @property
+    def MONGO_URL(self) -> str:
+        return f"mongodb://{self.MONGO_USER}:{self.MONGO_PASSWORD}@{self.MONGO_HOST}:{self.MONGO_PORT}/admin"
 
 
 CONFIG = Config()

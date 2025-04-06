@@ -4,13 +4,35 @@ from typing import Any
 
 
 @dataclass
+class Author:
+    id: int
+    name: str
+    email: str
+    photo_url: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+            "photo_url": self.photo_url,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Author":
+        return cls(
+            id=data["id"],
+            name=data["name"],
+            email=data["email"],
+            photo_url=data["photo_url"],
+        )
+
+
+@dataclass
 class Comment:
     id: str | None
     text: str
-    author_id: int
-    author_name: str
-    author_email: str
-    author_photo_url: str
+    author: Author
     parent_id: str
     post_id: str
     dislikes: set[int]  # id's of users who disliked
@@ -22,10 +44,7 @@ class Comment:
         return {
             "id": self.id,
             "text": self.text,
-            "author_id": self.author_id,
-            "author_name": self.author_name,
-            "author_email": self.author_email,
-            "author_photo_url": self.author_photo_url,
+            "author": self.author.to_dict(),
             "parent_id": self.parent_id,
             "post_id": self.post_id,
             "dislikes": self.dislikes,
@@ -37,12 +56,9 @@ class Comment:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Comment":
         return cls(
-            id=data["id"],
+            id=str(data["id"]),
             text=data["text"],
-            author_id=data["author_id"],
-            author_name=data["author_name"],
-            author_email=data["author_email"],
-            author_photo_url=data["author_photo_url"],
+            author=Author.from_dict(data["author"]),
             parent_id=data["parent_id"],
             post_id=data["post_id"],
             dislikes=data["dislikes"],
@@ -54,13 +70,10 @@ class Comment:
 
 @dataclass
 class Post:
-    id: str
+    id: str | None
     title: str
     content: str
-    author_id: int
-    author_name: str
-    author_email: str
-    author_photo_url: str
+    author: Author | None
     dislikes: set[int]  # ids of users that disliked this post
     likes: set[int]  # ids of users that liked this post
     created_at: datetime
@@ -68,14 +81,13 @@ class Post:
     recent_comments: list[Comment]
 
     def to_dict(self) -> dict[str, Any]:
+        if not isinstance(self.author, Author):
+            raise TypeError(f"Author must be of type Author, not {type(self.author)}")
         return {
             "id": self.id,
             "title": self.title,
             "content": self.content,
-            "author_id": self.author_id,
-            "author_name": self.author_name,
-            "author_email": self.author_email,
-            "author_photo_url": self.author_photo_url,
+            "author": self.author.to_dict(),
             "dislikes": self.dislikes,
             "likes": self.likes,
             "created_at": self.created_at.isoformat(),
@@ -87,17 +99,17 @@ class Post:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Post":
+        data["id"] = data.pop("_id", data.get("id"))
         return cls(
-            id=data["id"],
+            id=str(data["id"]),
             title=data["title"],
             content=data["content"],
-            author_id=data["author_id"],
-            author_name=data["author_name"],
-            author_email=data["author_email"],
-            author_photo_url=data["author_photo_url"],
+            author=Author(**data["author"]),
             dislikes=data["dislikes"],
             likes=data["likes"],
             created_at=datetime.fromisoformat(data["created_at"]),
             comments_count=data["comments_count"],
-            recent_comments=data["recent_comments"],
+            recent_comments=[
+                Comment.from_dict(comment) for comment in data["recent_comments"]
+            ],
         )
