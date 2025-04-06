@@ -3,9 +3,9 @@ from redis.asyncio import Redis, ConnectionPool
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from src.application.authorize import UseCaseGuard
-from src.application.usecases.add_project import CreateProjectUseCase
-from src.application.usecases.login import LoginUseCase
-from src.application.usecases.register_user import RegisterUserUseCase
+from src.application.usecases.projects.add_project import CreateProjectUseCase
+from src.application.usecases.users.login import LoginUseCase
+from src.application.usecases.users.register_user import RegisterUserUseCase
 from src.application.usecases.update_token import UpdateCredentialsUseCase
 from src.config import CONFIG
 from src.domain.entities.user import RolesEnum

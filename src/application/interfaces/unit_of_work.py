@@ -1,18 +1,11 @@
 from abc import ABC, abstractmethod
 
+from src.application.interfaces.repositories.posts import AbstractPostsRepository
 from src.application.interfaces.repositories.projects import AbstractProjectsRepository
 from src.application.interfaces.repositories.users import AbstractUsersRepository
 
 
 class AbstractUnitOfWork(ABC):
-    def __init__(
-        self,
-        user_repo_cls: type[AbstractUsersRepository],
-        project_repo_cls: type[AbstractProjectsRepository],
-    ):
-        self.user_repo_cls = user_repo_cls
-        self.project_repo_cls = project_repo_cls
-
     @property
     @abstractmethod
     def users(self) -> AbstractUsersRepository:
@@ -21,6 +14,11 @@ class AbstractUnitOfWork(ABC):
     @property
     @abstractmethod
     def projects(self) -> AbstractProjectsRepository:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def posts(self) -> AbstractPostsRepository:
         raise NotImplementedError
 
     @abstractmethod

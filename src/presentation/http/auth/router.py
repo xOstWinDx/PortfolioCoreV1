@@ -6,8 +6,8 @@ from starlette.responses import JSONResponse
 
 from src.application.authorize import UseCaseGuard
 from src.application.interfaces.credentials import Credentials
-from src.application.usecases.login import LoginUseCase
-from src.application.usecases.register_user import RegisterUserUseCase
+from src.application.usecases.users.login import LoginUseCase
+from src.application.usecases.users.register_user import RegisterUserUseCase
 from src.container import Container
 from src.context import CredentialsHolder
 from src.domain.exceptions.auth import UserAlreadyExistsError, AuthError

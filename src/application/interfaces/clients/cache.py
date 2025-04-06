@@ -1,33 +1,25 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Mapping, Sequence
 
 
 class AbstractCacheClient(ABC):
     @abstractmethod
-    async def __aenter__(self) -> "AbstractCacheClient":
-        raise NotImplementedError
-
-    @abstractmethod
-    async def __aexit__(self, exc_type, exc_value, traceback) -> None:  # type: ignore
-        raise NotImplementedError
-
-    @abstractmethod
-    async def set(  # type: ignore
+    async def set(
         self,
         /,
         *,
         key: str,
         expiration: int | None = None,
-        **data,
+        data: Mapping[str, Any] | Sequence[Any],
     ) -> str | None:
         raise NotImplementedError
 
     @abstractmethod
-    async def get(self, key: str) -> dict[str, Any] | None:
+    async def get(self, key: str) -> list[Any] | None:
         raise NotImplementedError
 
     @abstractmethod
-    async def delete(self, key: str) -> None:
+    async def delete(self, *keys: str) -> None:
         raise NotImplementedError
 
     @abstractmethod

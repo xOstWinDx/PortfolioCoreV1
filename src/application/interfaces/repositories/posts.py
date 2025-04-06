@@ -2,14 +2,12 @@ from abc import ABC, abstractmethod
 from typing import Literal
 
 from src.domain.entities.post import Post, Comment
-from src.domain.filters.posts import PostsFilter
 
 
 class AbstractPostsRepository(ABC):
     @abstractmethod
     async def get_posts(
         self,
-        post_filter: PostsFilter,
         last_id: str | None = None,
         limit: int = 20,
         sort: Literal["asc", "desc"] = "desc",
@@ -51,7 +49,7 @@ class AbstractPostsRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def create_answer(self, comment: Comment, comment_id: str) -> Comment:
+    async def create_answer(self, answer: Comment, comment_id: str) -> Comment:
         raise NotImplementedError
 
     @abstractmethod

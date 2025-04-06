@@ -8,7 +8,7 @@ from starlette.requests import Request
 
 from src.application.authorize import UseCaseGuard
 from src.application.interfaces.credentials import Credentials  # noqa: F401
-from src.application.usecases.add_project import CreateProjectUseCase
+from src.application.usecases.projects.add_project import CreateProjectUseCase
 from src.container import container
 from src.context import CredentialsHolder
 from src.domain.exceptions.base import ConflictException

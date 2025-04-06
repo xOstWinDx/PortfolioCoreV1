@@ -1,20 +1,30 @@
 from typing import Callable
 
+from motor.motor_asyncio import AsyncIOMotorClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.interfaces.unit_of_work import AbstractUnitOfWork
+from src.infrastructure.repositories.posts import MongoPostsRepository
 from src.infrastructure.repositories.projects import SQLProjectsRepository
 from src.infrastructure.repositories.users import SQLUsersRepository
 
 
 class UnitOfWork(AbstractUnitOfWork):
-    def __init__(self, session_factory: Callable[[], AsyncSession]) -> None:
-        super().__init__(
-            user_repo_cls=SQLUsersRepository,
-            project_repo_cls=SQLProjectsRepository,
-        )
-        self.session_factory = session_factory
+    def __init__(
+        self,
+        sql_session_factory: Callable[[], AsyncSession],
+        mongo_client_factory: Callable[[], AsyncIOMotorClient],
+    ) -> None:
+        self.sql_session_factory = sql_session_factory
+        self.mongo_client_factory = mongo_client_factory
+        self._mongo_client: AsyncIOMotorClient | None = None
         self._sql_session: AsyncSession | None = None
+
+    @property
+    def posts(self) -> MongoPostsRepository:
+        if self._mongo_client is None:
+            raise RuntimeError("Mongo is not connected")
+        return MongoPostsRepository(mongo_client=self._mongo_client)
 
     @property
     def users(self) -> SQLUsersRepository:
@@ -29,7 +39,8 @@ class UnitOfWork(AbstractUnitOfWork):
         return SQLProjectsRepository(session=self._sql_session)
 
     async def __aenter__(self) -> "UnitOfWork":
-        self._sql_session = self.session_factory()
+        self._mongo_client = self.mongo_client_factory()
+        self._sql_session = self.sql_session_factory()
         await self._sql_session.__aenter__()
         return self
 

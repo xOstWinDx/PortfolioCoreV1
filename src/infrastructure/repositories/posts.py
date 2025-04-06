@@ -7,14 +7,6 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from src.application.interfaces.repositories.posts import AbstractPostsRepository
 from src.config import CONFIG
 from src.domain.entities.post import Post, Comment
-from src.domain.filters.posts import PostsFilter
-
-
-# ────────────────
-# TODO [05.04.2025 | High]
-# Assigned to: stark
-# Description: Реализовать сервис для работы с постами
-# ────────────────
 
 
 class MongoPostsRepository(AbstractPostsRepository):
@@ -24,7 +16,6 @@ class MongoPostsRepository(AbstractPostsRepository):
 
     async def get_posts(
         self,
-        post_filter: PostsFilter,
         last_id: str | None = None,
         limit: int = 20,
         sort: Literal["asc", "desc"] = "desc",
@@ -40,17 +31,7 @@ class MongoPostsRepository(AbstractPostsRepository):
                         }
                         if last_id
                         else {}
-                    ),
-                    **(
-                        {"author_id": post_filter.author_id}
-                        if post_filter.author_id
-                        else {}
-                    ),
-                    **(
-                        {"post_id": ObjectId(post_filter.post_id)}
-                        if post_filter.post_id
-                        else {}
-                    ),
+                    )
                 }
             },
             {"$sort": {"_id": -1 if sort == "desc" else 1}},
