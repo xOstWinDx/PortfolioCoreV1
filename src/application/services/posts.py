@@ -31,13 +31,13 @@ class PostsService:
         self, last_id: str | None = None, limit: int = 20
     ) -> list[Post] | None:
         if cached := await self.cache_client.get(f"posts:{last_id}:{limit}"):
-            return cached
+            return [Post.from_dict(post) for post in cached]
 
         posts = await self.uow.posts.get_posts(last_id=last_id, limit=limit)
 
         await self.cache_client.set(
             key=f"posts:{last_id}:{limit}",
-            data=posts,
+            data=[post.to_dict() for post in posts],  # noqa
             expiration=CONFIG.POSTS_CACHE_EXPIRE_SECONDS,
         )
 
@@ -57,14 +57,16 @@ class PostsService:
     ) -> list[Comment] | None:
         key = self.comments_key(post_id=post_id, last_id=last_id, limit=limit)
         if cached := await self.cache_client.get(key):
-            return cached
+            return [Comment.from_dict(comment) for comment in cached]
 
         comments = await self.uow.posts.get_comments(
             post_id=post_id, last_id=last_id, limit=limit
         )
 
         await self.cache_client.set(
-            key=key, data=comments, expiration=CONFIG.COMMENTS_CACHE_EXPIRE_SECONDS
+            key=key,
+            data=[comment.to_dict() for comment in comments],  # noqa
+            expiration=CONFIG.COMMENTS_CACHE_EXPIRE_SECONDS,
         )
 
         return comments
@@ -112,14 +114,16 @@ class PostsService:
     ) -> list[Comment] | None:
         key = self.answers_key(parent_id=comment_id, last_id=last_id, limit=limit)
         if cached := await self.cache_client.get(key):
-            return cached
+            return [Comment.from_dict(comment) for comment in cached]
 
         answers = await self.uow.posts.get_answers(
             comment_id=comment_id, last_id=last_id, limit=limit
         )
 
         await self.cache_client.set(
-            key=key, data=answers, expiration=CONFIG.COMMENTS_CACHE_EXPIRE_SECONDS
+            key=key,
+            data=[answer.to_dict() for answer in answers],  # noqa
+            expiration=CONFIG.COMMENTS_CACHE_EXPIRE_SECONDS,
         )
 
         return answers
