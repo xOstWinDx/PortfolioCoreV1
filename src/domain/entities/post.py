@@ -32,8 +32,8 @@ class Author:
 class Comment:
     id: str | None
     text: str
-    author: Author
-    parent_id: str
+    author: Author | None
+    parent_id: str | None
     post_id: str
     dislikes: set[int]  # id's of users who disliked
     likes: set[int]  # id's of users who liked
@@ -41,6 +41,8 @@ class Comment:
     created_at: datetime
 
     def to_dict(self) -> dict[str, Any]:
+        if not isinstance(self.author, Author):
+            raise TypeError(f"Author must be of type Author, not {type(self.author)}")
         return {
             "id": self.id,
             "text": self.text,
@@ -55,12 +57,13 @@ class Comment:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Comment":
+        data["id"] = data.pop("_id", data.get("id"))
         return cls(
             id=str(data["id"]),
             text=data["text"],
             author=Author.from_dict(data["author"]),
-            parent_id=data["parent_id"],
-            post_id=data["post_id"],
+            parent_id=str(data["parent_id"]),
+            post_id=str(data["post_id"]),
             dislikes=data["dislikes"],
             likes=data["likes"],
             answers_count=data["answers_count"],

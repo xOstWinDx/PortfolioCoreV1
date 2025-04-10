@@ -186,8 +186,6 @@ class JwtAuthService(AbstractAuthService):
     def get_subject_id(self, credentials: Credentials) -> int:
         try:
             return int(self.decode_token(credentials.get_authenticate()).sub)  # type: ignore
-        except (TokenError, AttributeError) as e:
-            logger.warning(
-                f"Invalid token: {credentials.get_authenticate()}", exc_info=e
-            )
+        except (TokenError, AttributeError):
+            logger.warning(f"Invalid token: {credentials.get_authenticate()}")
             raise TokenError(f"Invalid token: {credentials.get_authenticate()}")

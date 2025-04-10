@@ -7,8 +7,14 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from src.application.authorize import UseCaseGuard
 from src.application.services.posts import PostsService
-from src.application.usecases.posts.create_post import CreatePostUseCase
-from src.application.usecases.posts.get_posts import GetPostsUseCase
+from src.application.usecases.posts.comments.answers.create import CreateAnswerUseCase
+from src.application.usecases.posts.comments.answers.get import GetAnswersUseCase
+from src.application.usecases.posts.comments.create import CreateCommentUseCase
+from src.application.usecases.posts.comments.get import GetCommentsUseCase
+from src.application.usecases.posts.comments.rate import RateCommentUseCase
+from src.application.usecases.posts.create import CreatePostUseCase
+from src.application.usecases.posts.get import GetPostsUseCase
+from src.application.usecases.posts.rate import RatePostUseCase
 from src.application.usecases.projects.add_project import CreateProjectUseCase
 from src.application.usecases.users.login import LoginUseCase
 from src.application.usecases.users.register_user import RegisterUserUseCase
@@ -95,7 +101,33 @@ class Container(containers.DeclarativeContainer):
     _get_posts_use_case = providers.Factory(
         GetPostsUseCase, uow=uow, auth=auth_service, posts=posts
     )
-
+    _rate_post_use_case = providers.Factory(
+        RatePostUseCase,
+        uow=uow,
+        auth=auth_service,
+        posts=posts,
+    )
+    _create_comment_use_case = providers.Factory(
+        CreateCommentUseCase,
+        uow=uow,
+        auth=auth_service,
+        posts=posts,
+    )
+    _get_comments_use_case = providers.Factory(
+        GetCommentsUseCase,
+        uow=uow,
+        auth=auth_service,
+        posts=posts,
+    )
+    _create_answer_use_case = providers.Factory(
+        CreateAnswerUseCase, uow=uow, auth=auth_service, posts=posts
+    )
+    _get_answers_use_case = providers.Factory(
+        GetAnswersUseCase, uow=uow, auth=auth_service, posts=posts
+    )
+    _rate_comment_use_case = providers.Factory(
+        RateCommentUseCase, uow=uow, auth=auth_service, posts=posts
+    )
     # endregion
 
     # region Use cases with auth
@@ -136,6 +168,54 @@ class Container(containers.DeclarativeContainer):
         required_role=RolesEnum.GUEST,
         auth_service=auth_service,
         use_case=_get_posts_use_case,
+        uow=uow,
+        default_context=default_context,
+    )
+    rate_post_use_case = providers.Factory(
+        UseCaseGuard,
+        required_role=RolesEnum.USER,
+        auth_service=auth_service,
+        use_case=_rate_post_use_case,
+        uow=uow,
+        default_context=default_context,
+    )
+    create_comment_use_case = providers.Factory(
+        UseCaseGuard,
+        required_role=RolesEnum.USER,
+        auth_service=auth_service,
+        use_case=_create_comment_use_case,
+        uow=uow,
+        default_context=default_context,
+    )
+    get_comments_use_case = providers.Factory(
+        UseCaseGuard,
+        required_role=RolesEnum.GUEST,
+        auth_service=auth_service,
+        use_case=_get_comments_use_case,
+        uow=uow,
+        default_context=default_context,
+    )
+    create_answer_use_case = providers.Factory(
+        UseCaseGuard,
+        required_role=RolesEnum.USER,
+        auth_service=auth_service,
+        use_case=_create_answer_use_case,
+        uow=uow,
+        default_context=default_context,
+    )
+    get_answers_use_case = providers.Factory(
+        UseCaseGuard,
+        required_role=RolesEnum.GUEST,
+        auth_service=auth_service,
+        use_case=_get_answers_use_case,
+        uow=uow,
+        default_context=default_context,
+    )
+    rate_comment_use_case = providers.Factory(
+        UseCaseGuard,
+        required_role=RolesEnum.USER,
+        auth_service=auth_service,
+        use_case=_rate_comment_use_case,
         uow=uow,
         default_context=default_context,
     )

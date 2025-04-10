@@ -25,11 +25,12 @@ class AuthError(Exception):
 
 
 class SubjectNotFoundError(Exception):
-    def __init__(self) -> None:
-        super().__init__("Subject not found")
+    def __init__(self, msg: str = "Subject not found") -> None:
+        super().__init__(msg)
+        self.msg = msg
 
     def __repr__(self) -> str:
-        return "Subject not found"
+        return self.msg
 
 
 class AccessDeniedError(Exception):

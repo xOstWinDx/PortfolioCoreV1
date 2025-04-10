@@ -25,6 +25,10 @@ class PostsService:
     ) -> str:
         return f"answers:{parent_id}:{last_id}:{limit}"
 
+    @staticmethod
+    def posts_key(*, last_id: str = "*", limit: str | None = "*") -> str:
+        return f"posts:{last_id}:{limit}"
+
     async def __aenter__(self) -> None:
         await self.uow.__aenter__()
 
@@ -53,10 +57,20 @@ class PostsService:
         return await self.uow.posts.create_post(post=post)
 
     async def like_post(self, post_id: str, user_id: int) -> bool:
-        return await self.uow.posts.like_post(post_id=post_id, user_id=user_id)
+        res = await self.uow.posts.like_post(post_id=post_id, user_id=user_id)
+        if res:
+            key = self.posts_key()
+            keys = await self.cache_client.keys(key)
+            await self.cache_client.delete(*keys)
+        return res
 
     async def dislike_post(self, post_id: str, user_id: int) -> bool:
-        return await self.uow.posts.dislike_post(post_id=post_id, user_id=user_id)
+        res = await self.uow.posts.dislike_post(post_id=post_id, user_id=user_id)
+        if res:
+            key = self.posts_key()
+            keys = await self.cache_client.keys(key)
+            await self.cache_client.delete(*keys)
+        return res
 
     async def get_comments(
         self, post_id: str, last_id: str | None = None, limit: int = 10
@@ -66,7 +80,6 @@ class PostsService:
             comments = cached["data"]
             has_next = cached["has_next"]
             return [Comment.from_dict(comment) for comment in comments], has_next
-
         comments, has_next = await self.uow.posts.get_comments(
             post_id=post_id, last_id=last_id, limit=limit
         )
@@ -83,18 +96,14 @@ class PostsService:
 
     async def create_comment(self, post_id: str, comment: Comment) -> Comment:
         if res := await self.uow.posts.create_comment(comment):
-            key = self.comments_key(post_id=post_id)
-            keys = await self.cache_client.keys(key)
-            await self.cache_client.delete(*keys)
+            await self._clear_cache(post_id=post_id)
         return res
 
     async def like_comment(self, post_id: str, comment_id: str, user_id: int) -> bool:
         if res := await self.uow.posts.like_comment(
             comment_id=comment_id, user_id=user_id
         ):
-            key = self.comments_key(post_id=post_id)
-            keys = await self.cache_client.keys(key)
-            await self.cache_client.delete(*keys)
+            await self._clear_cache(post_id=post_id, with_answers=True)
         return res
 
     async def dislike_comment(
@@ -103,9 +112,7 @@ class PostsService:
         if res := await self.uow.posts.dislike_comment(
             comment_id=comment_id, user_id=user_id
         ):
-            key = self.comments_key(post_id=post_id)
-            keys = await self.cache_client.keys(key)
-            await self.cache_client.delete(*keys)
+            await self._clear_cache(post_id=post_id, with_answers=True)
         return res
 
     async def create_answer(
@@ -114,8 +121,11 @@ class PostsService:
         if res := await self.uow.posts.create_answer(
             answer=answer, comment_id=comment_id
         ):
-            key = self.comments_key(post_id=post_id)
-            keys = await self.cache_client.keys(key)
+            pattern_c = self.comments_key(post_id=post_id)
+            pattern_a = self.answers_key(parent_id=comment_id)
+            keys_a = await self.cache_client.keys(pattern_c)
+            keys_c = await self.cache_client.keys(pattern_a)
+            keys = keys_a + keys_c
             await self.cache_client.delete(*keys)
         return res
 
@@ -142,3 +152,13 @@ class PostsService:
         )
 
         return answers, has_next
+
+    async def _clear_cache(self, post_id: str, with_answers: bool = False) -> None:
+        key_c = self.comments_key(post_id=post_id)
+        keys = await self.cache_client.keys(key_c)
+        key_p = self.posts_key()
+        keys.extend(await self.cache_client.keys(key_p))
+        if with_answers:
+            key_a = self.answers_key()
+            keys.extend(await self.cache_client.keys(key_a))
+        await self.cache_client.delete(*keys)

@@ -27,6 +27,8 @@ class RedisCacheClient(AbstractCacheClient):
         return None
 
     async def delete(self, *keys: str) -> None:
+        if not keys:
+            return None
         return await self.redis_client.delete(*keys)  # type: ignore
 
     async def keys(self, pattern: str) -> list[str]:

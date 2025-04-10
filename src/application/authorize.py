@@ -68,7 +68,7 @@ class UseCaseGuard(Generic[U]):
             except TokenError as e:
                 logger.warning("Access denied: no token found", exc_info=e)
                 context = self.default_context
-        message = f"Access denied: required {self.required_role} or higher, got {context.role}"
+        message = f"Access denied: required {self.required_role.name} or higher, got {context.role.name}"
         if context.role == RolesEnum.GUEST:
             message += " (possibly due to an invalid or expired token)"
         if context.role < self.required_role:

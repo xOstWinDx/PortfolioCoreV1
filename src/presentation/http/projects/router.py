@@ -54,8 +54,6 @@ async def create_project(
             return ProjectResponse.model_validate(res, from_attributes=True)
     except ConflictException as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
-    except PermissionError as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
 
 
 container.wire(modules=[__name__])  # должен быть внизу

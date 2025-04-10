@@ -2,14 +2,16 @@ from time import time
 from typing import Awaitable, Callable
 
 from dependency_injector.wiring import Provide, inject
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from redis.asyncio import Redis
+from starlette import status
 from starlette.requests import Request
 from starlette.responses import Response
 
 from src.config import CONFIG
 from src.container import Container
 from src.context import CredentialsHolder
+from src.domain.exceptions.auth import AccessDeniedError
 from src.presentation.http.auth.router import router as auth_router
 from src.presentation.http.projects.router import router as projects_router
 from src.presentation.http.posts.router import router as posts_router
@@ -25,6 +27,11 @@ app = FastAPI(
 app.include_router(auth_router)
 app.include_router(projects_router)
 app.include_router(posts_router)
+
+
+@app.exception_handler(AccessDeniedError)
+async def my_custom_exception_handler(request: Request, exc: AccessDeniedError) -> None:
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
 
 
 @app.middleware("http")
