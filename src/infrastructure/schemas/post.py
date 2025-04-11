@@ -4,13 +4,7 @@ from typing import Any
 from pydantic import BaseModel, model_validator, field_validator
 
 from src.domain.entities.post import Post, Comment
-
-
-class Author(BaseModel):
-    id: int
-    name: str
-    email: str
-    photo_url: str
+from src.infrastructure.schemas.user import Author
 
 
 class CreateCommentSchema(BaseModel):

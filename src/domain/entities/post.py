@@ -2,30 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-
-@dataclass
-class Author:
-    id: int
-    name: str
-    email: str
-    photo_url: str
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "id": self.id,
-            "name": self.name,
-            "email": self.email,
-            "photo_url": self.photo_url,
-        }
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Author":
-        return cls(
-            id=data["id"],
-            name=data["name"],
-            email=data["email"],
-            photo_url=data["photo_url"],
-        )
+from src.domain.entities.user import Author
 
 
 @dataclass

@@ -14,7 +14,7 @@ from src.application.usecases.posts.comments.rate import RateCommentUseCase
 from src.application.usecases.posts.create import CreatePostUseCase
 from src.application.usecases.posts.get import GetPostsUseCase
 from src.application.usecases.posts.rate import RatePostUseCase
-from src.container import Container
+from src.container import container
 from src.context import CredentialsHolder
 from src.domain.exceptions.auth import SubjectNotFoundError
 from src.domain.value_objects.auth import AuthorizationContext  # noqa: F401
@@ -31,8 +31,8 @@ from src.infrastructure.schemas.post import (
 )
 from src.presentation.http.dependencies import credentials_schema, get_creds_holder
 
-container = Container()
 router = APIRouter(prefix="/posts", tags=["posts"])
+
 
 # region Posts
 

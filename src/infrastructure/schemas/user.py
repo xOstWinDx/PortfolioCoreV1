@@ -23,3 +23,10 @@ class RegisterUserSchema(LoginUserSchema):
         if not any(char.isdigit() for char in value):
             raise ValueError("Password must contain at least one digit")
         return value
+
+
+class Author(BaseModel):
+    id: int
+    name: str
+    email: str
+    photo_url: str

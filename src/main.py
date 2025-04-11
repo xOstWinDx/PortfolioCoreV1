@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from time import time
 from typing import Awaitable, Callable
 
@@ -9,24 +10,38 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from src.config import CONFIG
-from src.container import Container
+from src.container import container
 from src.context import CredentialsHolder
 from src.domain.exceptions.auth import AccessDeniedError
 from src.presentation.http.auth.router import router as auth_router
 from src.presentation.http.projects.router import router as projects_router
 from src.presentation.http.posts.router import router as posts_router
 
-container = Container()
+
+@asynccontextmanager
+async def life_span(app: FastAPI):  # type: ignore
+    await initialize_redis()
+    yield
+
 
 app = FastAPI(
     title="Portfolio Backend",
     version="0.0.1",
     description="API for my portfolio website and blog.",
+    lifespan=life_span,
 )
 
 app.include_router(auth_router)
 app.include_router(projects_router)
 app.include_router(posts_router)
+
+
+# Инициализация при первом использовании
+@inject
+async def initialize_redis(redis: Redis = Provide["redis"]) -> Redis:
+    await redis.ping()  # Асинхронный пинг
+    print(f"Redis connected (lifespan) - {id(redis)}")
+    return redis
 
 
 @app.exception_handler(AccessDeniedError)
@@ -60,8 +75,6 @@ async def credentials_middleware(
     return response
 
 
-@app.middleware("http")
-@inject
 async def rate_limit_middleware(
     request: Request,
     call_next: Callable[[Request], Awaitable[Response]],

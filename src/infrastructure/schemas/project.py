@@ -4,9 +4,10 @@ from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from src.domain.entities.project import Project
 from src.infrastructure.abstract import InfraStructureEntity
+from src.infrastructure.schemas.user import Author
 
 
-class ProjectSchema(BaseModel, InfraStructureEntity[Project]):
+class CreateProjectSchema(BaseModel, InfraStructureEntity[Project]):
     title: str = Field(max_length=128)
     description: str
     tags: list[str]
@@ -56,14 +57,21 @@ class ProjectSchema(BaseModel, InfraStructureEntity[Project]):
 
     def to_domain(self) -> Project:
         return Project(
-            id=None,
+            id=None,  # type: ignore
             title=self.title,
             description=self.description,
             tags=self.tags,
             stack=self.stack,
             created_at=self.created_at,
+            author=None,
         )
 
 
-class ProjectResponse(ProjectSchema):
+class ReadProjectSchema(CreateProjectSchema):
     id: int
+    author: Author
+
+
+class ProjectsResponse(BaseModel):
+    projects: list[ReadProjectSchema]
+    has_next: bool

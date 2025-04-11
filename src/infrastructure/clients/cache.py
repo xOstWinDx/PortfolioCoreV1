@@ -3,7 +3,7 @@ from typing import Any, Mapping, Sequence
 
 from redis.asyncio import Redis
 
-from src.application.interfaces.clients.cache import AbstractCacheClient
+from src.application.interfaces.clients.cache import AbstractCacheClient, cache
 
 
 class RedisCacheClient(AbstractCacheClient):
@@ -21,7 +21,7 @@ class RedisCacheClient(AbstractCacheClient):
         data = json.dumps(data, ensure_ascii=False)
         return await self.redis_client.set(name=key, value=data, ex=expiration)  # type: ignore
 
-    async def get(self, key: str) -> dict[str, Any] | None:
+    async def get(self, key: str) -> cache | None:
         if data := await self.redis_client.get(key):
             return json.loads(data)  # type: ignore
         return None

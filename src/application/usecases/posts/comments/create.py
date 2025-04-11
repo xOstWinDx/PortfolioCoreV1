@@ -2,7 +2,8 @@ from src.application.interfaces.services.auth import AbstractAuthService
 from src.application.interfaces.unit_of_work import AbstractUnitOfWork
 from src.application.services.posts import PostsService
 from src.application.usecases.abs import AbstractUseCase
-from src.domain.entities.post import Comment, Author
+from src.domain.entities.post import Comment
+from src.domain.entities.user import Author
 from src.domain.exceptions.auth import AccessDeniedError
 from src.domain.filters.users import UserFilter
 from src.domain.value_objects.auth import AuthorizationContext

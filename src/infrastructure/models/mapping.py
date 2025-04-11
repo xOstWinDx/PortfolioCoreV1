@@ -8,4 +8,5 @@ def to_model(project: Project) -> ProjectModel:
         created_at=project.created_at,
         title=project.title,
         description=project.description,
+        user_id=project.author.id,  # type: ignore
     )

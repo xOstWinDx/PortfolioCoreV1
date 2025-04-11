@@ -17,22 +17,23 @@ from src.infrastructure.repositories.alchemy_mixin import SQLAlchemyMixin
 class SQLProjectsRepository(AbstractProjectsRepository, SQLAlchemyMixin):
     model = ProjectModel
 
-    async def get_project(
-        self, filters: ProjectFilter, limit: int, offset: int
-    ) -> Sequence[Project]:
+    async def get_projects(
+        self, filter: ProjectFilter, limit: int, offset: int
+    ) -> tuple[Sequence[Project], bool]:
         query = Select(self.model)
-        if filters.date_to:
-            query = query.where(self.model.created_at <= filters.date_to)
-        if filters.date_from:
-            query = query.where(self.model.created_at >= filters.date_from)
-        if filters.id:
-            query = query.where(self.model.id == filters.id)
-        if filters.stack is not None:
-            query = query.where(self.model.stack.contains(filters.stack))
-        query.offset(offset).limit(limit)
+        if filter.date_to:
+            query = query.where(self.model.created_at <= filter.date_to)
+        if filter.date_from:
+            query = query.where(self.model.created_at >= filter.date_from)
+        if filter.id:
+            query = query.where(self.model.id == filter.id)
+        if filter.stack is not None:
+            query = query.where(self.model.stack.contains(filter.stack))
+        query.offset(offset).limit(limit + 1)
         res = await self.session.execute(query)
         seq: Sequence[ProjectModel] = res.scalars().all()
-        return [item.to_domain() for item in seq]
+        has_next = len(seq) > limit
+        return [item.to_domain() for item in seq[0:limit]], has_next
 
     async def _get_or_create_technologies(
         self, technology_names: list[str]
@@ -84,6 +85,7 @@ class SQLProjectsRepository(AbstractProjectsRepository, SQLAlchemyMixin):
             await self.session.flush()
         except (IntegrityError, UniqueViolationError):
             raise ConflictException(f"Project already exists: {project.title}")
+
         return project_model.to_domain()
 
     async def update_project(

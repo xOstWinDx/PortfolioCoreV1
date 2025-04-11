@@ -65,8 +65,8 @@ class UseCaseGuard(Generic[U]):
                     credentials=new_credentials, device_id=self.__device_id
                 )
                 self.__creds_holder.credentials = new_credentials
-            except TokenError as e:
-                logger.warning("Access denied: no token found", exc_info=e)
+            except TokenError:
+                logger.warning("Access denied: no token found")
                 context = self.default_context
         message = f"Access denied: required {self.required_role.name} or higher, got {context.role.name}"
         if context.role == RolesEnum.GUEST:

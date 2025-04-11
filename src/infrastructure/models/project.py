@@ -2,8 +2,10 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, relationship, mapped_column
 
 from src.domain.entities.project import Project
+from src.domain.entities.user import Author
 from src.infrastructure.abstract import InfraStructureEntity
 from src.infrastructure.database import Str128, Str16
+from src.infrastructure.models import UserModel
 from src.infrastructure.models.base import Base
 
 
@@ -28,6 +30,8 @@ class ProjectModel(Base, InfraStructureEntity[Project]):
     stack: Mapped[list[TechnologyModel]] = relationship(
         TechnologyModel, secondary="projects_technologies"
     )
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    author: Mapped["UserModel"] = relationship("users")
 
     def to_domain(self) -> Project:
         return Project(
@@ -37,6 +41,12 @@ class ProjectModel(Base, InfraStructureEntity[Project]):
             description=self.description,
             tags=[tag.name for tag in self.tags],
             stack=[tech.name for tech in self.stack],
+            author=Author(
+                id=self.author.id,
+                name=self.author.username,
+                email=self.author.email,
+                photo_url="Coming soon...",
+            ),
         )
 
 

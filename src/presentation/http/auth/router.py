@@ -8,7 +8,7 @@ from src.application.authorize import UseCaseGuard
 from src.application.interfaces.credentials import Credentials
 from src.application.usecases.users.login import LoginUseCase
 from src.application.usecases.users.register_user import RegisterUserUseCase
-from src.container import Container
+from src.container import container
 from src.context import CredentialsHolder
 from src.domain.exceptions.auth import UserAlreadyExistsError, AuthError
 from src.domain.value_objects.auth import AuthorizationContext  # noqa: F401
@@ -16,8 +16,6 @@ from src.infrastructure.schemas.user import LoginUserSchema, RegisterUserSchema
 from src.presentation.http.dependencies import credentials_schema, get_creds_holder
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-container = Container()
 
 
 @router.post("/register", status_code=201)

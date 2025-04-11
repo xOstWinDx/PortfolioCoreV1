@@ -1,5 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import Any, Mapping, Sequence
+from typing import Any, TypedDict
+
+cache = TypedDict(
+    "cache",
+    {
+        "data": dict[str, Any] | list[dict[str, Any]],
+        "has_next": bool | None,
+    },
+)
 
 
 class AbstractCacheClient(ABC):
@@ -10,12 +18,12 @@ class AbstractCacheClient(ABC):
         *,
         key: str,
         expiration: int | None = None,
-        data: Mapping[str, Any] | Sequence[Any],
+        data: cache,
     ) -> str | None:
         raise NotImplementedError
 
     @abstractmethod
-    async def get(self, key: str) -> dict[str, Any] | None:
+    async def get(self, key: str) -> cache | None:
         raise NotImplementedError
 
     @abstractmethod

@@ -8,9 +8,9 @@ from src.domain.filters.projects import ProjectFilter
 
 class AbstractProjectsRepository(ABC):
     @abstractmethod
-    async def get_project(
-        self, filters: ProjectFilter, limit: int, offset: int
-    ) -> Sequence[Project]:
+    async def get_projects(
+        self, filter: ProjectFilter, limit: int, offset: int
+    ) -> tuple[Sequence[Project], bool]:
         """Получить все проекты по фильтру и пагинации"""
         raise NotImplementedError
 

@@ -3,10 +3,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette import status
 from starlette.requests import Request
 
-from src.container import Container
+from src.container import container
 from src.context import CredentialsHolder
-
-container = Container()
 
 
 class AccessTokenBearer(HTTPBearer):

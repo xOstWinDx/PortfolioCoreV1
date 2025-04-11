@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from src.application.authorize import UseCaseGuard
 from src.application.services.posts import PostsService
+from src.application.services.projects import ProjectsService
 from src.application.usecases.posts.comments.answers.create import CreateAnswerUseCase
 from src.application.usecases.posts.comments.answers.get import GetAnswersUseCase
 from src.application.usecases.posts.comments.create import CreateCommentUseCase
@@ -15,7 +16,8 @@ from src.application.usecases.posts.comments.rate import RateCommentUseCase
 from src.application.usecases.posts.create import CreatePostUseCase
 from src.application.usecases.posts.get import GetPostsUseCase
 from src.application.usecases.posts.rate import RatePostUseCase
-from src.application.usecases.projects.add_project import CreateProjectUseCase
+from src.application.usecases.projects.create import CreateProjectUseCase
+from src.application.usecases.projects.get import GetProjectsUseCase
 from src.application.usecases.users.login import LoginUseCase
 from src.application.usecases.users.register_user import RegisterUserUseCase
 from src.config import CONFIG
@@ -26,6 +28,13 @@ from src.infrastructure.credentials import JwtCredentials
 from src.infrastructure.repositories.tokens import JWTRedisAuthRepository
 from src.infrastructure.services.auth import JwtAuthService
 from src.infrastructure.unit_of_work import UnitOfWork
+
+
+# Асинхронная инициализация Redis
+async def init_redis(redis: Redis) -> Redis:
+    print(f"Redis connected (init_redis) - {id(redis)}")
+    await redis.ping()
+    return redis
 
 
 class Container(containers.DeclarativeContainer):
@@ -41,16 +50,18 @@ class Container(containers.DeclarativeContainer):
     session_factory = providers.Singleton(
         async_sessionmaker, bind=engine, expire_on_commit=False
     )
+    # Создаём пул синхронно
     redis_pool = providers.Singleton(
         ConnectionPool.from_url,
         url=CONFIG.DEV_REDIS_URL,
         decode_responses=True,
     )
 
-    redis = providers.Singleton(  # Ресурс провайдер обеспечивает открытие и закрытие соединения
-        Redis,
-        connection_pool=redis_pool,
+    redis = providers.Resource(
+        init_redis,
+        redis=providers.Singleton(Redis, connection_pool=redis_pool),
     )
+
     auth_repo = providers.Factory(JWTRedisAuthRepository, redis_client=redis)
     auth_service = providers.Factory(JwtAuthService, auth_repo=auth_repo)
     cache_client = providers.Singleton(RedisCacheClient, redis_client=redis)
@@ -61,6 +72,7 @@ class Container(containers.DeclarativeContainer):
         mongo_client_factory=mongo_factory,
     )
     posts = providers.Factory(PostsService, uow=uow, cache_client=cache_client)
+    projects = providers.Factory(ProjectsService, uow=uow, cache_client=cache_client)
 
     # endregion
 
@@ -90,9 +102,7 @@ class Container(containers.DeclarativeContainer):
         auth=auth_service,
     )
     _create_project_use_case = providers.Factory(
-        CreateProjectUseCase,
-        uow=uow,
-        auth=auth_service,
+        CreateProjectUseCase, uow=uow, auth=auth_service, posts=posts
     )
 
     _create_post_use_case = providers.Factory(
@@ -127,6 +137,9 @@ class Container(containers.DeclarativeContainer):
     )
     _rate_comment_use_case = providers.Factory(
         RateCommentUseCase, uow=uow, auth=auth_service, posts=posts
+    )
+    _get_projects_use_case = providers.Factory(
+        GetProjectsUseCase, uow=uow, auth=auth_service, projects=projects
     )
     # endregion
 
@@ -216,6 +229,14 @@ class Container(containers.DeclarativeContainer):
         required_role=RolesEnum.USER,
         auth_service=auth_service,
         use_case=_rate_comment_use_case,
+        uow=uow,
+        default_context=default_context,
+    )
+    get_projects_use_case = providers.Factory(
+        UseCaseGuard,
+        required_role=RolesEnum.GUEST,
+        auth_service=auth_service,
+        use_case=_get_projects_use_case,
         uow=uow,
         default_context=default_context,
     )
