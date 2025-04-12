@@ -1,2 +1,2 @@
-# portfolio_backend
+# PortfolioCoreV1
 Бекенд для моего сайта - визитки - блога.
